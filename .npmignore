@@ -1,0 +1,8 @@
+/src/**/*
+.pnp.*
+.yarn
+.vscode
+tsconfig.json
+eslint.config.mjs
+.editorconfig
+.gitattributes

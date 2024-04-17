@@ -6,14 +6,15 @@
   "typescript.tsdk": ".yarn/sdks/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "files.exclude": {
-    "**/.git": true,
-    "**/.svn": true,
-    "**/.hg": true,
-    "**/CVS": true,
-    "**/.DS_Store": true,
-    "**/Thumbs.db": true,
-    "**/.*": true,
-    "eslint*.*": true
+    "**/.git": false,
+    "**/.svn": false,
+    "**/.hg": false,
+    "**/CVS": false,
+    "**/.DS_Store": false,
+    "**/Thumbs.db": false,
+    "**/.*": false,
+    "eslint*.*": false
   },
-  "explorerExclude.backup": {}
+  "explorerExclude.backup": {},
+  "eslint.nodePath": ".yarn/sdks"
 }
