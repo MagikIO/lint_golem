@@ -2,10 +2,10 @@
 import eslint from '@eslint/js';
 import plugin_n from 'eslint-plugin-n';
 import { sync as globSync } from 'fast-glob';
-import tslint from 'typescript-eslint';
+import tseslint from 'typescript-eslint';
 
 interface LintGolemOptions {
-  rootDir?: string;
+  rootDir: string;
   ignoreGlobs?: string[];
   projectRoots?: string[];
   disableTypeCheckOn?: string[];
@@ -133,29 +133,46 @@ export default class LintGolem {
     if (rules) this.rules = { ...this.rules, ...rules };
   }
 
+  get ignoresObject() {
+    return {
+      ignores: this.ignoreGlobs,
+    }
+  }
+
+  get disabledFilesObject() {
+    return {
+      files: this.disableTypeCheckOn,
+      ...tseslint.configs.disableTypeChecked,
+    }
+  }
+
+  get langOptsObject() {
+    return {
+      languageOptions: {
+        ecmaVersion: 'latest',
+        parserOptions: {
+          project: this.projectRoots,
+          tsconfigRootDir: this.rootDir,
+        }
+      }
+    }
+  }
+
+  get rulesObject() {
+    return {
+      ...this.langOptsObject,
+      rules: this.rules,
+    }
+  }
+
   get config() {
     return [
-      {
-        ignores: this.ignoreGlobs,
-      },
+      this.ignoresObject,
       eslint.configs.recommended,
-      ...tslint.configs.recommendedTypeChecked,
+      ...tseslint.configs.recommendedTypeChecked,
       plugin_n.configs['flat/recommended-script'],
-      {
-        languageOptions: {
-          ecmaVersion: 'latest',
-          parserOptions: {
-            project: this.projectRoots,
-            tsconfigRootDir: this.rootDir,
-          }
-        },
-        rules: this.rules,
-      },
-      {
-        // Disable type-checking rules for files in node_modules
-        files: this.disableTypeCheckOn,
-        extends: [tslint.configs.disableTypeChecked]
-      },
+      this.rulesObject,
+      this.disabledFilesObject,
     ]
   }
 }
