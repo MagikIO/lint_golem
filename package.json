@@ -1,0 +1,12 @@
+{
+  "author": "Abourass (https://github.com/Abourass)",
+  "description": "A really magik lint_golem",
+  "license": "MIT",
+  "name": "@magik_io/lint_golem",
+  "repository": "https://github.com/MagikIO/lint_golem.git",
+  "packageManager": "yarn@4.1.1",
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "typescript": "^5.4.5"
+  }
+}
