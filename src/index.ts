@@ -12,7 +12,7 @@ interface LintGolemOptions {
   rules?: Record<string, string | Array<any>>;
 }
 
-export default class LintGolem {
+export class LintGolem {
   protected rootDir: string = process.cwd();
   protected ignoreGlobs: string[] = [
     '**/gen',
