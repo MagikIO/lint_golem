@@ -13,8 +13,8 @@ interface LintGolemOptions {
 }
 
 export class LintGolem {
-  protected rootDir: string = process.cwd();
-  protected ignoreGlobs: string[] = [
+  public rootDir: string = process.cwd();
+  public ignoreGlobs: string[] = [
     '**/gen',
     '**/*.map.js',
     '**/*.js.map',
@@ -34,18 +34,18 @@ export class LintGolem {
     '**/public/bundle/*',
   ];
 
-  protected projectRoots: string[] = globSync([
+  public projectRoots: string[] = globSync([
     `${this.rootDir}/tsconfig.json`,
     `${this.rootDir}/*.tsconfig.json`,
   ])
 
-  protected disableTypeCheckOn: string[] = [
+  public disableTypeCheckOn: string[] = [
     '**/*.js',
     '**/*.mjs',
     '**/*.cjs',
   ];
 
-  protected rules = {
+  public rules = {
     "@typescript-eslint/indent": "off",
     "indent": "off",
     "@typescript-eslint/no-redundant-type-constituents": "off",

@@ -3,6 +3,8 @@
 .yarn
 .vscode
 tsconfig.json
-eslint.config.mjs
+tsconfig.test.json
+eslint.config.js
 .editorconfig
 .gitattributes
+coverage

@@ -1,7 +1,7 @@
 {
   "name": "@magik_io/lint_golem",
   "description": "A really magik lint_golem",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "engines": {
     "node": "v21.7.1",
     "npm": "10.5.0"
@@ -10,11 +10,23 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc --project tsconfig.json",
+    "test": "vitest run --coverage",
     "publish": "npm publish --access public"
+  },
+  "dependencies": {
+    "@eslint/eslintrc": "^3.0.2",
+    "@eslint/js": "^9.0.0",
+    "@types/eslint": "^8.56.9",
+    "eslint": "^9.0.0",
+    "eslint-plugin-n": "^17.2.1",
+    "fast-glob": "^3.3.2",
+    "typescript-eslint": "^7.7.0"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",
-    "typescript": "^5.4.5"
+    "@vitest/coverage-v8": "^1.5.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.5.0"
   },
   "authors": [
     {
@@ -32,14 +44,5 @@
     "> 1%"
   ],
   "license": "MIT",
-  "packageManager": "yarn@4.1.1",
-  "dependencies": {
-    "@eslint/eslintrc": "^3.0.2",
-    "@eslint/js": "^9.0.0",
-    "@types/eslint": "^8.56.9",
-    "eslint": "^9.0.0",
-    "eslint-plugin-n": "^17.2.1",
-    "fast-glob": "^3.3.2",
-    "typescript-eslint": "^7.7.0"
-  }
+  "packageManager": "yarn@4.1.1"
 }
