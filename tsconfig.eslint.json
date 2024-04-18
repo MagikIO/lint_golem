@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["./vite.config.ts", "./test/index.test.ts", "./src/index.ts"]
+}

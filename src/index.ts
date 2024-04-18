@@ -83,6 +83,10 @@ export class LintGolem {
         ],
       },
     ],
+    "n/no-unpublished-import": ["error", {
+      "ignoreTypeImport": true,
+      "allowModules": ["vite"],
+    }],
     'no-nested-ternary': 'off',
     'arrow-parens': [
       'error',
@@ -173,6 +177,6 @@ export class LintGolem {
       plugin_n.configs['flat/recommended-script'],
       this.rulesObject,
       this.disabledFilesObject,
-    ]
+    ] as const;
   }
 }
