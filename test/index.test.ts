@@ -1,7 +1,7 @@
 import eslint from '@eslint/js';
 import plugin_n from 'eslint-plugin-n';
 import tseslint from 'typescript-eslint';
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { LintGolem } from '../src/index.ts'
 
 describe('LintGolem', () => {
