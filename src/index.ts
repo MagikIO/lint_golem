@@ -1,15 +1,21 @@
-// @ts-expect-error
 import eslint from '@eslint/js';
 import plugin_n from 'eslint-plugin-n';
 import { sync as globSync } from 'fast-glob';
 import tseslint from 'typescript-eslint';
+
+type PluginPrefixes = 'n/' | '@typescript-eslint/';
+
+type EslintOption = Record<string, boolean | string | Array<any>>;
+type EslintModifiedRule = Record<string | `${PluginPrefixes}string`, [action: 'off' | 'error' | 'warn', ...Array<string | EslintOption>]>;
+type DisabledRuleArray = Array<string>;
 
 interface LintGolemOptions {
   rootDir: string;
   ignoreGlobs?: string[];
   projectRoots?: string[];
   disableTypeCheckOn?: string[];
-  rules?: Record<string, string | Array<any>>;
+  disabledRules?: DisabledRuleArray;
+  rules?: EslintModifiedRule;
 }
 
 export class LintGolem {
@@ -45,49 +51,102 @@ export class LintGolem {
     '**/*.cjs',
   ];
 
-  public rules = {
-    "@typescript-eslint/indent": "off",
-    "indent": "off",
-    "@typescript-eslint/no-redundant-type-constituents": "off",
-    "@typescript-eslint/consistent-type-definitions": "off",
-    '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-explicit-any': 'off',
-    '@typescript-eslint/ban-ts-comment': 'off',
+  private mergeNewRules<
+    Action extends 'disable' | 'change' = 'disable' | 'change',
+    Collection extends 'Typescript' | 'Node' | 'Eslint' = 'Typescript' | 'Node' | 'Eslint'
+  >(rules: Action extends 'disable' ? DisabledRuleArray : EslintModifiedRule, action: Action, collection: Collection) {
+    if (!rules) return;
+    if (action === 'change' && !Object.keys(rules).length) return;
+    if (action === 'disable' && !rules.length) return;
+
+    function lowerCaseStr<Label extends string = string>(str: Label): Lowercase<Label> {
+      return str.toLocaleLowerCase() as Lowercase<Label>;
+    }
+    type DisabledCollections = '_disabledTypescriptRules' | '_disabledNodeRules' | '_disabledEslintRules';
+    type ModifiedCollections = '_typescriptModifiedRules' | '_nodeModifiedRules' | '_eslintModifiedRules';
+    type RuleCollections = 'typescriptRules' | 'nodeRules' | 'eslintRules';
+    const disabledTargetLabel = `_disabled${collection}Rules` as DisabledCollections;
+    const modificationTargetLabel = `_${lowerCaseStr(collection)}ModifiedRules` as ModifiedCollections;
+
+    if (action === 'disable' && Array.isArray(rules) && rules.every(rule => typeof rule === 'string')) {
+      const disabledTarget = this[disabledTargetLabel];
+      const newRules = (rules as Array<string>).filter(rule => !disabledTarget.includes(rule));
+      this[disabledTargetLabel] = [...disabledTarget, ...newRules];
+    }
+
+    if (action === 'change') {
+      const modificationTarget = this[modificationTargetLabel];
+      this[modificationTargetLabel] = {
+        ...modificationTarget,
+        ...rules as EslintModifiedRule,
+      }
+    }
+
+    const ruleTargetLabel = `${lowerCaseStr(collection)}Rules` as RuleCollections;
+    const ruleTarget = this[ruleTargetLabel];
+    this[ruleTargetLabel] = {
+      ...ruleTarget,
+      ...this[modificationTargetLabel],
+      ...this[disabledTargetLabel].reduce((acc, rule) => {
+        acc[rule] = 'off';
+        return acc;
+      }, {} as Record<string, string>),
+    }
+  }
+
+  private _disabledTypescriptRules = [
+    '@typescript-eslint/indent', '@typescript-eslint/no-redundant-type-constituents', '@typescript-eslint/consistent-type-definitions', '@typescript-eslint/explicit-module-boundary-types',
+    '@typescript-eslint/no-explicit-any', '@typescript-eslint/ban-ts-comment', '@typescript-eslint/no-var-requires', '@typescript-eslint/no-unsafe-call', '@typescript-eslint/no-unsafe-assignment',
+    '@typescript-eslint/no-unsafe-member-access', '@typescript-eslint/unbound-method', '@typescript-eslint/restrict-template-expressions', '@typescript-eslint/no-misused-promises',
+    '@typescript-eslint/array-type', '@typescript-eslint/no-unnecessary-type-assertion', '@typescript-eslint/lines-between-class-members', '@typescript-eslint/naming-convention',
+  ]
+  public get disabledTypescriptRules() { return this._disabledTypescriptRules; }
+  public set disabledTypescriptRules(rules: DisabledRuleArray) { this.mergeNewRules(rules, 'disable', 'Typescript'); }
+
+  private _typescriptModifiedRules: EslintModifiedRule = {
     '@typescript-eslint/no-inferrable-types': ['error', {
       ignoreParameters: false,
     }],
-    '@typescript-eslint/no-var-requires': "off",
-    '@typescript-eslint/no-unsafe-call': 'off',
-    '@typescript-eslint/no-unsafe-assignment': 'off',
-    '@typescript-eslint/no-unsafe-member-access': 'off',
-    "@typescript-eslint/unbound-method": "off",
-    "@typescript-eslint/restrict-template-expressions": "off",
-    "@typescript-eslint/no-misused-promises": "off",
-    "@typescript-eslint/array-type": "off",
-    "@typescript-eslint/prefer-nullish-coalescing": "off",
-    '@typescript-eslint/no-unnecessary-type-assertion': 'off',
-    // Leave these two to prettier
-    "lines-between-class-members": "off",
-    "@typescript-eslint/lines-between-class-members": "off",
-    // Enforce naming conventions (Leave to ts-rule below)
-    "camelcase": "off",
-    "@typescript-eslint/naming-convention": "off",
-    'object-shorthand': 'off',
-    'n/no-missing-import': 'off',
-    'n/no-unsupported-features/es-syntax': [
-      'error',
-      {
-        ignores: [
-          'dynamicImport',
-          'modules',
-        ],
-      },
-    ],
+  }
+  public get typescriptModifiedRules() { return this._typescriptModifiedRules; }
+  public set typescriptModifiedRules(rules: EslintModifiedRule) { this.mergeNewRules(rules, 'change', 'Typescript'); }
+
+  public typescriptRules = {
+    ...this.typescriptModifiedRules,
+    ...this._disabledTypescriptRules.reduce((acc, rule) => {
+      acc[rule] = 'off';
+      return acc;
+    }, {} as Record<string, string>),
+  }
+
+  private _disabledNodeRules = ['n/no-missing-import'];
+  public get disabledNodeRules() { return this._disabledNodeRules; }
+  public set disabledNodeRules(rules: string[]) { this.mergeNewRules(rules, 'disable', 'Node'); }
+
+  private _nodeModifiedRules: EslintModifiedRule = {
     "n/no-unpublished-import": ["error", {
-      "ignoreTypeImport": true,
-      "allowModules": ["vite"],
-    }],
-    'no-nested-ternary': 'off',
+      "allowModules": ['vitest'],
+    }]
+  }
+  public get nodeModifiedRules() { return this._nodeModifiedRules; }
+  public set nodeModifiedRules(rules: EslintModifiedRule) { this.mergeNewRules(rules, 'change', 'Node'); }
+
+  public nodeRules = {
+    ...this.nodeModifiedRules,
+    ...this._disabledNodeRules.reduce((acc, rule) => {
+      acc[rule] = 'off';
+      return acc;
+    }, {} as Record<string, string>),
+  }
+
+  private _disabledEslintRules = ['indent', 'lines-between-class-members', 'camelcase', 'object-shorthand', 'no-nested-ternary', 'one-var',
+    'class-methods-use-this', 'one-var-declaration-per-line', 'consistent-return', 'func-names', 'no-unused-expressions', 'no-console', 'arrow-body-style',
+    'no-restricted-syntax', 'no-inner-declarations', 'no-param-reassign', 'no-prototype-builtins', 'no-new', 'newline-per-chained-call', 'no-lonely-if', 'no-plusplus', 'no-bitwise',
+    'no-underscore-dangle', 'max-classes-per-file', 'spaced-comment'];
+  public get disabledEslintRules() { return this._disabledEslintRules; }
+  public set disabledEslintRules(rules: string[]) { this.mergeNewRules(rules, 'disable', 'Eslint'); }
+
+  private _eslintModifiedRules: EslintModifiedRule = {
     'arrow-parens': [
       'error',
       'as-needed',
@@ -95,46 +154,56 @@ export class LintGolem {
         requireForBlockBody: true,
       },
     ],
-    'no-sequences': 'error',
-    'one-var': 'off',
-    'class-methods-use-this': 'off',
-    'one-var-declaration-per-line': 'off',
-    'consistent-return': 'off',
-    'func-names': 'off',
-    // 'max-len': 'off',
-    'no-unused-expressions': 'off',
-    'no-console': 'off',
-    'arrow-body-style': 'off',
-    'no-shadow': [
-      'error',
-      { hoist: 'never' },
-    ],
-    'no-restricted-syntax': 'off',
-    'no-inner-declarations': 'off',
-    'no-param-reassign': 'off',
-    'no-prototype-builtins': 'off',
-    'no-new': 'off',
-    'newline-per-chained-call': 'off',
-    'no-lonely-if': 'off',
-    'no-plusplus': 'off',
-    'no-bitwise': 'off',
     'object-curly-newline': [
       'error',
       { multiline: true, consistent: true },
     ],
-    'no-underscore-dangle': 'off',
-    'max-classes-per-file': 'off',
-    'spaced-comment': 'off',
-    "no-constant-binary-expression": "error",
+    'no-shadow': [
+      'error',
+      { hoist: 'never' },
+    ],
+  }
+  public get eslintModifiedRules() { return this._eslintModifiedRules; }
+  public set eslintModifiedRules(rules: EslintModifiedRule) { this.mergeNewRules(rules, 'change', 'Eslint'); }
+
+  public eslintRules = {
+    ...this.eslintModifiedRules,
+    ...this._disabledEslintRules.reduce((acc, rule) => {
+      acc[rule] = 'off';
+      return acc;
+    }, {} as Record<string, string>),
+  }
+
+  public rules = {
+    ...this.typescriptRules,
+    ...this.nodeRules,
+    ...this.eslintRules,
   };
 
 
-  constructor({ rootDir, disableTypeCheckOn, ignoreGlobs, projectRoots, rules }: LintGolemOptions) {
+  constructor({ rootDir, disableTypeCheckOn, ignoreGlobs, projectRoots, rules, disabledRules }: LintGolemOptions) {
     this.rootDir = rootDir ?? this.rootDir;
     if (ignoreGlobs) this.ignoreGlobs = [...this.ignoreGlobs, ...ignoreGlobs];
     if (projectRoots) this.projectRoots = [...this.projectRoots, ...projectRoots];
     if (disableTypeCheckOn) this.disableTypeCheckOn = [...this.disableTypeCheckOn, ...disableTypeCheckOn];
-    if (rules) this.rules = { ...this.rules, ...rules };
+    if (rules) {
+      const typescriptRules = Object.keys(rules).filter(rule => rule.startsWith('@typescript-eslint/'));
+      const nodeRules = Object.keys(rules).filter(rule => rule.startsWith('n/'));
+      const eslintRules = Object.keys(rules).filter(rule => !rule.startsWith('@typescript-eslint/') && !rule.startsWith('n/'));
+
+      if (typescriptRules.length > 0) this.typescriptModifiedRules = rules;
+      if (nodeRules.length > 0) this.nodeModifiedRules = rules;
+      if (eslintRules.length > 0) this.eslintModifiedRules = rules;
+    }
+    if (disabledRules) {
+      const typescriptRules = disabledRules.filter(rule => rule.startsWith('@typescript-eslint/'));
+      const nodeRules = disabledRules.filter(rule => rule.startsWith('n/'));
+      const eslintRules = disabledRules.filter(rule => !rule.startsWith('@typescript-eslint/') && !rule.startsWith('n/'));
+
+      if (typescriptRules.length > 0) this.disabledTypescriptRules = typescriptRules;
+      if (nodeRules.length > 0) this.disabledNodeRules = nodeRules;
+      if (eslintRules.length > 0) this.disabledEslintRules = eslintRules;
+    }
   }
 
   get ignoresObject() {

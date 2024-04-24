@@ -11,14 +11,14 @@ describe('LintGolem', () => {
       ignoreGlobs: ['**/ignore'],
       projectRoots: ['/root/project'],
       disableTypeCheckOn: ['**/*.js'],
-      rules: { 'rule-key': 'rule-value' },
+      rules: { 'no-new': ['error'] },
     })
 
     expect(instance.rootDir).toBe('/root')
     expect(instance.ignoreGlobs.includes('**/ignore')).toBe(true)
     expect(instance.projectRoots.includes('/root/project')).toBe(true)
     expect(instance.disableTypeCheckOn.includes('**/*.js')).toBe(true)
-    expect(instance.rules['rule-key']).toBe('rule-value')
+    expect(instance.rules['no-new']).toEqual(['error'])
   })
 
   it('ignoresObject returns correct object', () => {
@@ -27,7 +27,7 @@ describe('LintGolem', () => {
       ignoreGlobs: ['**/ignore'],
       projectRoots: ['/root/project'],
       disableTypeCheckOn: ['**/*.js'],
-      rules: { 'rule-key': 'rule-value' },
+      rules: { 'no-new': ['error'] },
     })
 
     expect(instance.ignoresObject).toEqual({ ignores: instance.ignoreGlobs })
@@ -39,7 +39,7 @@ describe('LintGolem', () => {
       ignoreGlobs: ['**/ignore'],
       projectRoots: ['/root/project'],
       disableTypeCheckOn: ['**/*.js'],
-      rules: { 'rule-key': 'rule-value' },
+      rules: { 'no-new': ['error'] },
     })
 
     expect(instance.disabledFilesObject).toEqual({
@@ -54,7 +54,7 @@ describe('LintGolem', () => {
       ignoreGlobs: ['**/ignore'],
       projectRoots: ['/root/project'],
       disableTypeCheckOn: ['**/*.js'],
-      rules: { 'rule-key': 'rule-value' },
+      rules: { 'no-new': ['error'] },
     })
 
     expect(instance.langOptsObject).toEqual({
@@ -74,7 +74,7 @@ describe('LintGolem', () => {
       ignoreGlobs: ['**/ignore'],
       projectRoots: ['/root/project'],
       disableTypeCheckOn: ['**/*.js'],
-      rules: { 'rule-key': 'rule-value' },
+      rules: { 'no-new': ['error'] },
     })
 
     expect(instance.rulesObject).toEqual({
@@ -89,7 +89,7 @@ describe('LintGolem', () => {
       ignoreGlobs: ['**/ignore'],
       projectRoots: ['/root/project'],
       disableTypeCheckOn: ['**/*.js'],
-      rules: { 'rule-key': 'rule-value' },
+      rules: { 'no-new': ['error'] },
     })
 
     expect(instance.config).toEqual([
@@ -108,9 +108,27 @@ describe('LintGolem', () => {
       ignoreGlobs: ['**/ignore'],
       projectRoots: ['/root/project'],
       disableTypeCheckOn: ['**/*.js'],
-      rules: { 'rule-key': 'rule-value' },
+      rules: { 'no-new': ['error'] },
     })
 
     expect(instance.rootDir).toBe(process.cwd())
+  })
+
+  it('should allow us to disable rule', () => {
+    const instance = new LintGolem({
+      rootDir: '/root',
+      ignoreGlobs: ['**/ignore'],
+      projectRoots: ['/root/project'],
+      disableTypeCheckOn: ['**/*.js'],
+      disabledRules: ['no-new'],
+    })
+
+    it('should have add the rule to disabledEslintRules', () => {
+      expect(instance.disabledEslintRules.includes('no-new')).toBe(true)
+    })
+
+    it('should have have the rules as disabled in the final rules', () => {
+      expect(instance.config[4]['no-new']).toEqual(['off'])
+    })
   })
 })
