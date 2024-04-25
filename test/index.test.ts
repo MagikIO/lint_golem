@@ -1,134 +1,224 @@
 import eslint from '@eslint/js';
 import plugin_n from 'eslint-plugin-n';
 import tseslint from 'typescript-eslint';
-import { describe, it, expect } from 'vitest'
-import { LintGolem } from '../src/index.ts'
+import { describe, it, expect, suite } from 'vitest'
+import { LintGolem, type Types } from '../src/index.ts'
+import { join, resolve } from 'path';
 
-describe('LintGolem', () => {
-  it('constructor sets properties correctly', () => {
-    const instance = new LintGolem({
-      rootDir: '/root',
-      ignoreGlobs: ['**/ignore'],
-      projectRoots: ['/root/project'],
-      disableTypeCheckOn: ['**/*.js'],
-      rules: { 'no-new': ['error'] },
+suite('LintGolem', () => {
+  const DEFAULTS = {
+    rootDir: '/root' as const,
+    ignoreGlobs: ['**/ignore'],
+    projectRoots: ['/root/project'],
+    disableTypeCheckOn: ['**/*.test'],
+  }
+
+  const modifiedRuleConfig = {
+    rules: {
+      'object-curly-newline': [
+        'warn',
+        { multiline: true, consistent: true },
+      ],
+      '@typescript-eslint/consistent-indexed-object-style': ['error'],
+      'n/no-test': ['error'],
+    },
+  } as { rules: Types['EslintModifiedRule'] }
+
+  const removedRuleConfig = {
+    disabledRules: ['no-new', 'n/no-new', '@typescript-eslint/no-new-daemons'],
+  } as Pick<Types['LintGolemOptions'], 'disabledRules'>
+
+  const summon = new LintGolem({ ...DEFAULTS, ...modifiedRuleConfig, ...removedRuleConfig })
+
+  describe('when summoning (constructor)', () => {
+    it('should set the default rootDir correctly, even when one is supplied', () => {
+      expect(summon.rootDir).toBe(DEFAULTS.rootDir)
     })
 
-    expect(instance.rootDir).toBe('/root')
-    expect(instance.ignoreGlobs.includes('**/ignore')).toBe(true)
-    expect(instance.projectRoots.includes('/root/project')).toBe(true)
-    expect(instance.disableTypeCheckOn.includes('**/*.js')).toBe(true)
-    expect(instance.rules['no-new']).toEqual(['error'])
-  })
-
-  it('ignoresObject returns correct object', () => {
-    const instance = new LintGolem({
-      rootDir: '/root',
-      ignoreGlobs: ['**/ignore'],
-      projectRoots: ['/root/project'],
-      disableTypeCheckOn: ['**/*.js'],
-      rules: { 'no-new': ['error'] },
+    it('should set the default ignoreGlobs correctly, even when one is supplied', () => {
+      expect(summon.ignoreGlobs).toEqual([
+        '**/gen',
+        '**/*.map.js',
+        '**/*.js.map',
+        '**/*.mjs.map',
+        '**/node_modules',
+        '**/dist',
+        '**/.stylelintrc',
+        '**/CHANGELOG.md',
+        '**/coverage',
+        '**/docs',
+        '**/.github',
+        '**/.vscode',
+        '**/logs',
+        '**/.nyc',
+        '**/.nyc_output',
+        '**/.yarn',
+        '**/public/bundle/*',
+        '**/ignore',
+      ])
     })
 
-    expect(instance.ignoresObject).toEqual({ ignores: instance.ignoreGlobs })
-  })
-
-  it('disabledFilesObject returns correct object', () => {
-    const instance = new LintGolem({
-      rootDir: '/root',
-      ignoreGlobs: ['**/ignore'],
-      projectRoots: ['/root/project'],
-      disableTypeCheckOn: ['**/*.js'],
-      rules: { 'no-new': ['error'] },
+    it('should have constructed the ignoresObject from the ignoresGlob', () => {
+      expect(summon.ignoresObject).toEqual({ ignores: summon.ignoreGlobs })
     })
 
-    expect(instance.disabledFilesObject).toEqual({
-      files: instance.disableTypeCheckOn,
-      ...tseslint.configs.disableTypeChecked,
-    })
-  })
-
-  it('langOptsObject returns correct object', () => {
-    const instance = new LintGolem({
-      rootDir: '/root',
-      ignoreGlobs: ['**/ignore'],
-      projectRoots: ['/root/project'],
-      disableTypeCheckOn: ['**/*.js'],
-      rules: { 'no-new': ['error'] },
+    it('should override the defaults when a user supplied tsconfig array is supplied', () => {
+      expect(summon.projectRoots).toEqual(DEFAULTS.projectRoots)
     })
 
-    expect(instance.langOptsObject).toEqual({
-      languageOptions: {
-        ecmaVersion: 'latest',
-        parserOptions: {
-          project: instance.projectRoots,
-          tsconfigRootDir: instance.rootDir,
+    it('should resort to defaults when no tsconfig array is supplied', () => {
+      const noProjectRootSummon = new LintGolem({
+        rootDir: '/root',
+        ignoreGlobs: ['**/ignore'],
+        disableTypeCheckOn: ['**/*.js'],
+      })
+      expect(noProjectRootSummon.projectRoots).toEqual([
+        resolve(join('tsconfig.json')),
+      ])
+    })
+
+    it('should set the disableTypeCheckOn property correctly', () => {
+      expect(summon.disableTypeCheckOn.includes('**/*.test')).toBe(true)
+    })
+
+    it('should still have the default disableTypeCheckOn values, even when one is supplied', () => {
+      expect(summon.disableTypeCheckOn).toEqual(['**/*.js', '**/*.mjs', '**/*.cjs', '**/*.test'])
+    })
+
+    it('should set the disabledFilesObject correctly', () => {
+      expect(summon.disabledFilesObject).toEqual({
+        files: summon.disableTypeCheckOn,
+        ...tseslint.configs.disableTypeChecked,
+      })
+    })
+
+    it('should create langOptsObject from what the user supplied', () => {
+      expect(summon.langOptsObject).toEqual({
+        languageOptions: {
+          ecmaVersion: 'latest',
+          parserOptions: {
+            project: summon.projectRoots,
+            tsconfigRootDir: summon.rootDir,
+          },
         },
-      },
+      })
+    })
+
+    it('should rulesObject returns correct object', () => {
+      expect(summon.rulesObject.rules).toEqual(summon.rules)
+      expect(summon.rulesObject.languageOptions).toEqual(summon.langOptsObject.languageOptions)
+    })
+
+    it('config returns correct array', () => {
+      expect(summon.config).toEqual([
+        summon.ignoresObject,
+        eslint.configs.recommended,
+        ...tseslint.configs.recommendedTypeChecked,
+        plugin_n.configs['flat/recommended-script'],
+        summon.rulesObject,
+        summon.disabledFilesObject,
+      ] as const)
+    })
+
+    it('should return the process.cwd() as the default rootDir', () => {
+      // @ts-expect-error
+      const defaultRootSummon = new LintGolem({
+        ignoreGlobs: ['**/ignore'],
+        projectRoots: ['/root/project'],
+        disableTypeCheckOn: ['**/*.js'],
+        rules: { 'no-new': ['error'] },
+      })
+
+      expect(defaultRootSummon.rootDir).toBe(process.cwd())
+    })
+
+    it('should return when rules is not provided', () => {
+      const configArray = summon.config
+      const rules = configArray[configArray.length - 2]
+
+      const config = { ...rules }
+
+      // @ts-expect-error
+      summon.disableTypeCheckOn = undefined
+
+      expect(rules).toEqual(config)
+    })
+
+    it('should allow the user to overwrite rules', () => {
+      expect(summon.rules['object-curly-newline']).toEqual(['warn', { multiline: true, consistent: true }])
     })
   })
 
-  it('rulesObject returns correct object', () => {
-    const instance = new LintGolem({
-      rootDir: '/root',
-      ignoreGlobs: ['**/ignore'],
-      projectRoots: ['/root/project'],
-      disableTypeCheckOn: ['**/*.js'],
-      rules: { 'no-new': ['error'] },
-    })
+  describe('when we disable rules', () => {
+    removedRuleConfig.disabledRules?.forEach((rule) => {
+      const prefix = rule.startsWith('@typescript-eslint') ? '@typescript-eslint' : rule.startsWith('n/') ? 'n/' : 'eslint'
 
-    expect(instance.rulesObject).toEqual({
-      ...instance.langOptsObject,
-      rules: instance.rules,
+      it(`should have disabled the ${rule} rule`, () => {
+        if (prefix === 'eslint') {
+          expect(summon.disabledEslintRules.includes(rule)).toBe(true)
+        } else if (prefix === 'n/') {
+          expect(summon.disabledNodeRules.includes(rule)).toBe(true)
+        } else {
+          expect(summon.disabledTypescriptRules.includes(rule)).toBe(true)
+        }
+      })
+
+      it(`should have removed the ${rule} rule from the rules object`, () => {
+        expect(summon.rules[rule]).toEqual('off')
+      })
     })
   })
 
-  it('config returns correct array', () => {
-    const instance = new LintGolem({
-      rootDir: '/root',
-      ignoreGlobs: ['**/ignore'],
-      projectRoots: ['/root/project'],
-      disableTypeCheckOn: ['**/*.js'],
-      rules: { 'no-new': ['error'] },
+  suite('when we modify and disable a', () => {
+    describe('eslint rule', () => {
+      it('should throw an error', () => {
+        expect(() => {
+          const lintRules = new LintGolem({
+            ...DEFAULTS,
+            rules: {
+              'no-constant-condition': ['error'],
+            },
+            disabledRules: ['no-constant-condition'],
+          })
+
+          return lintRules.rules
+
+        }).toThrowError('Rule no-constant-condition is disabled and modified')
+      })
     })
 
-    expect(instance.config).toEqual([
-      instance.ignoresObject,
-      eslint.configs.recommended,
-      ...tseslint.configs.recommendedTypeChecked,
-      plugin_n.configs['flat/recommended-script'],
-      instance.rulesObject,
-      instance.disabledFilesObject,
-    ])
-  })
+    describe('typescript-eslint rule', () => {
+      it('should throw an error', () => {
+        expect(() => {
+          const lintRules = new LintGolem({
+            ...DEFAULTS,
+            rules: {
+              '@typescript-eslint/no-new-symbol': ['error'],
+            },
+            disabledRules: ['@typescript-eslint/no-new-symbol'],
+          })
 
-  it('should return the process.cwd() as the default rootDir', () => {
-    // @ts-expect-error
-    const instance = new LintGolem({
-      ignoreGlobs: ['**/ignore'],
-      projectRoots: ['/root/project'],
-      disableTypeCheckOn: ['**/*.js'],
-      rules: { 'no-new': ['error'] },
+          return lintRules.rules
+
+        }).toThrowError('Rule @typescript-eslint/no-new-symbol is disabled and modified')
+      })
     })
 
-    expect(instance.rootDir).toBe(process.cwd())
-  })
+    describe('node rule', () => {
+      it('should throw an error', () => {
+        expect(() => {
+          const lintRules = new LintGolem({
+            ...DEFAULTS,
+            rules: {
+              'n/no-new': ['error'],
+            },
+            disabledRules: ['n/no-new'],
+          })
 
-  it('should allow us to disable rule', () => {
-    const instance = new LintGolem({
-      rootDir: '/root',
-      ignoreGlobs: ['**/ignore'],
-      projectRoots: ['/root/project'],
-      disableTypeCheckOn: ['**/*.js'],
-      disabledRules: ['no-new'],
-    })
+          return lintRules.rules
 
-    it('should have add the rule to disabledEslintRules', () => {
-      expect(instance.disabledEslintRules.includes('no-new')).toBe(true)
-    })
-
-    it('should have have the rules as disabled in the final rules', () => {
-      expect(instance.config[4]['no-new']).toEqual(['off'])
+        }).toThrowError('Rule n/no-new is disabled and modified')
+      })
     })
   })
 })
