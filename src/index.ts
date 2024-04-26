@@ -241,15 +241,12 @@ export class LintGolem {
     );
   }
 
-  public static async init(config: LintGolemOptions, verbose = false) {
+  public static async init(config: Omit<LintGolemOptions, 'tsconfigPaths'> & { tsconfigPaths?: Array<string> }, verbose = false) {
     const tsconfigPaths = await glob([
       `tsconfig.json`,
       `*.tsconfig.json`,
       ...(config.tsconfigPaths ?? []),
-    ], {
-      cwd: config.rootDir,
-      ignore: config.ignoreGlobs
-    });
+    ], { cwd: config.rootDir, ignore: config.ignoreGlobs });
     if (tsconfigPaths.length === 0) throw new Error('No tsconfig.json found', { cause: 'Missing projectRoot / glob failure' });
     if (verbose) console.info('Found tsconfigPaths:', tsconfigPaths.join(', \n'));
     return new LintGolem({ ...config, tsconfigPaths });
