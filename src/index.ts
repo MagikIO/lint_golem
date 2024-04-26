@@ -1,7 +1,7 @@
 /* eslint-disable no-useless-escape */
 import eslint from '@eslint/js';
 import plugin_n from 'eslint-plugin-n';
-import { sync as globSync } from 'fast-glob';
+import { glob } from 'fast-glob';
 import tseslint from 'typescript-eslint';
 import { LintGolemError } from './LintGolemError.js';
 
@@ -14,7 +14,7 @@ type DisabledRuleArray = Array<string>;
 interface LintGolemOptions {
   rootDir: string;
   ignoreGlobs?: string[];
-  projectRoots?: string[];
+  tsconfigPaths: string[];
   disableTypeCheckOn?: string[];
   disabledRules?: DisabledRuleArray;
   rules?: EslintModifiedRule;
@@ -48,11 +48,7 @@ export class LintGolem {
     '**/.yarn',
     '**/public/bundle/*',
   ];
-
-  public projectRoots: string[] = globSync([
-    `${this.rootDir}/tsconfig.json`,
-    `${this.rootDir}/*.tsconfig.json`,
-  ])
+  public tsconfigPaths: string[] = [];
 
   public disableTypeCheckOn: string[] = [
     '**/*.js',
@@ -133,10 +129,10 @@ export class LintGolem {
     }
   }
 
-  constructor({ rootDir, disableTypeCheckOn, ignoreGlobs, projectRoots, rules, disabledRules }: LintGolemOptions) {
+  constructor({ rootDir, disableTypeCheckOn, ignoreGlobs, tsconfigPaths, rules, disabledRules }: LintGolemOptions) {
     try {
       this.rootDir = rootDir ?? this.rootDir;
-      this.projectRoots = projectRoots ?? this.projectRoots;
+      this.tsconfigPaths = tsconfigPaths;
       if (ignoreGlobs) this.ignoreGlobs = [...this.ignoreGlobs, ...ignoreGlobs];
       if (disableTypeCheckOn) this.disableTypeCheckOn = [...this.disableTypeCheckOn, ...disableTypeCheckOn];
       if (rules && disabledRules) {
@@ -188,7 +184,7 @@ export class LintGolem {
       languageOptions: {
         ecmaVersion: 'latest',
         parserOptions: {
-          project: this.projectRoots,
+          project: this.tsconfigPaths,
           tsconfigRootDir: this.rootDir,
         }
       }
@@ -243,5 +239,16 @@ export class LintGolem {
       formatJSON(error.incomingRule),
       formatJSON(error.matchSource)
     );
+  }
+
+  public static async init(config: Omit<LintGolemOptions, 'tsconfigPaths'> & { tsconfigPaths?: Array<string> }, verbose = false) {
+    const tsconfigPaths = await glob([
+      `tsconfig.json`,
+      `*.tsconfig.json`,
+      ...(config.tsconfigPaths ?? []),
+    ], { cwd: config.rootDir, ignore: config.ignoreGlobs });
+    if (tsconfigPaths.length === 0) throw new Error('No tsconfig.json found', { cause: 'Missing projectRoot / glob failure' });
+    if (verbose) console.info('Found tsconfigPaths:', tsconfigPaths.join(', \n'));
+    return new LintGolem({ ...config, tsconfigPaths });
   }
 }
