@@ -3,13 +3,13 @@ import plugin_n from 'eslint-plugin-n';
 import tseslint from 'typescript-eslint';
 import { describe, it, expect, suite } from 'vitest'
 import { LintGolem, type Types } from '../src/index.ts'
-import { join, resolve } from 'path';
+import { resolve } from 'node:path';
 
 suite('LintGolem', () => {
   const DEFAULTS = {
     rootDir: '/root' as const,
     ignoreGlobs: ['**/ignore'],
-    projectRoots: ['/root/project'],
+    tsconfigPaths: ['/root/project'],
     disableTypeCheckOn: ['**/*.test'],
   }
 
@@ -63,18 +63,27 @@ suite('LintGolem', () => {
     })
 
     it('should override the defaults when a user supplied tsconfig array is supplied', () => {
-      expect(summon.projectRoots).toEqual(DEFAULTS.projectRoots)
+      expect(summon.tsconfigPaths).toEqual(DEFAULTS.tsconfigPaths)
     })
 
-    it('should resort to defaults when no tsconfig array is supplied', () => {
-      const noProjectRootSummon = new LintGolem({
-        rootDir: '/root',
+    it('should resort to defaults when no tsconfig array is supplied', async () => {
+      const noProjectRootSummon = await LintGolem.init({
+        rootDir: resolve(__dirname, '..'),
         ignoreGlobs: ['**/ignore'],
         disableTypeCheckOn: ['**/*.js'],
-      })
-      expect(noProjectRootSummon.projectRoots).toEqual([
-        resolve(join('tsconfig.json')),
+      }, true)
+      expect(noProjectRootSummon.tsconfigPaths).toEqual([
+        'tsconfig.json',
       ])
+    })
+
+    it('should throw an error if no default tsconfig can be found', async () => {
+      await expect(async () => LintGolem.init({
+        rootDir: __dirname,
+        ignoreGlobs: ['*.package.json', 'package.json'],
+        disableTypeCheckOn: ['**/*.js'],
+      }, true)).rejects.toThrowError()
+
     })
 
     it('should set the disableTypeCheckOn property correctly', () => {
@@ -97,7 +106,7 @@ suite('LintGolem', () => {
         languageOptions: {
           ecmaVersion: 'latest',
           parserOptions: {
-            project: summon.projectRoots,
+            project: summon.tsconfigPaths,
             tsconfigRootDir: summon.rootDir,
           },
         },
@@ -124,7 +133,7 @@ suite('LintGolem', () => {
       // @ts-expect-error
       const defaultRootSummon = new LintGolem({
         ignoreGlobs: ['**/ignore'],
-        projectRoots: ['/root/project'],
+        tsconfigPaths: ['/root/project'],
         disableTypeCheckOn: ['**/*.js'],
         rules: { 'no-new': ['error'] },
       })
