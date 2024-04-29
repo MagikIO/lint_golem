@@ -75,12 +75,8 @@ export class LintGolem {
     }
   }
 
-  public disabledNodeRules = ['n/no-missing-import'];
-  public nodeModifiedRules: EslintModifiedRule = {
-    "n/no-unpublished-import": ["error", {
-      "allowModules": ['vitest'],
-    }]
-  }
+  public disabledNodeRules = ['n/no-missing-import', 'n/no-unpublished-require', 'n/no-unpublished-import'];
+  public nodeModifiedRules: EslintModifiedRule = {}
   public get nodeRules() {
     return {
       ...this.nodeModifiedRules,
