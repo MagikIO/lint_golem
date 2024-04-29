@@ -182,7 +182,7 @@ export class LintGolem {
   get langOptsObject() {
     return {
       languageOptions: {
-        ecmaVersion: 'latest',
+        ecmaVersion: 'latest' as 'latest',
         parserOptions: {
           project: this.tsconfigPaths,
           tsconfigRootDir: this.rootDir,

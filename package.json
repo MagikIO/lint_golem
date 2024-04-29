@@ -1,7 +1,7 @@
 {
   "name": "@magik_io/lint_golem",
   "description": "A really magik lint golem",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "engines": {
     "node": "v21.*.*",
     "npm": "10.*.*"
@@ -14,7 +14,11 @@
     "publish": "npm publish --access public"
   },
   "peerDependencies": {
-    "eslint": "*"
+    "@eslint/eslintrc": "^3.0.2",
+    "@eslint/js": "^9.1.1",
+    "@types/eslint": "^8.56.10",
+    "eslint": "^9.1.1",
+    "typescript-eslint": "^7.8.0"
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.0.2",
@@ -23,7 +27,7 @@
     "eslint": "^9.1.1",
     "eslint-plugin-n": "^17.3.1",
     "fast-glob": "^3.3.2",
-    "typescript-eslint": "^7.7.1"
+    "typescript-eslint": "^7.8.0"
   },
   "devDependencies": {
     "@types/eslint__js": "^8.42.3",
