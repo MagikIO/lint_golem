@@ -3,7 +3,7 @@
   "description": "A really magik lint golem",
   "version": "2.0.1",
   "engines": {
-    "node": "v21.*.*",
+    "node": "21.*.*",
     "npm": "10.*.*"
   },
   "main": "dist/index.js",
