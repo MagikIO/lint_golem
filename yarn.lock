@@ -380,8 +380,8 @@ __metadata:
     typescript-eslint: "npm:^7.8.0"
     vitest: "npm:^1.6.0"
   peerDependencies:
-    eslint: ^9.1.1
-    typescript-eslint: ^7.8.0
+    eslint: ^9.*.*
+    typescript-eslint: ^7.*.*
   languageName: unknown
   linkType: soft
 
