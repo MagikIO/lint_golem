@@ -1,8 +1,8 @@
-
 import eslint from '@eslint/js';
 import plugin_n from 'eslint-plugin-n';
 import { glob } from 'fast-glob';
 import tseslint from 'typescript-eslint';
+import prettierConfig from 'eslint-config-prettier';
 import { LintGolemError } from './LintGolemError.js';
 
 type PluginPrefixes = 'n/' | '@typescript-eslint/';
@@ -75,7 +75,13 @@ export class LintGolem {
     }
   }
 
-  public disabledNodeRules = ['n/no-missing-import', 'n/no-unpublished-require', 'n/no-unpublished-import'];
+  public disabledNodeRules = [
+    'n/no-missing-import',
+    'n/no-unpublished-require',
+    'n/no-unpublished-import',
+    'n/no-extraneous-import',
+    'n/no-extraneous-require',
+  ];
   public nodeModifiedRules: EslintModifiedRule = {}
   public get nodeRules() {
     return {
@@ -87,7 +93,7 @@ export class LintGolem {
     }
   }
 
-  public disabledEslintRules = ['arrow-body-style', 'camelcase', 'class-methods-use-this', 'consistent-return', 'func-names', 'indent', 'lines-between-class-members',
+  public disabledEslintRules = ['arrow-body-style', 'camelcase', 'class-methods-use-this', 'consistent-return', 'func-names', 'indent', 'lines-between-class-members', 'no-useless-escape',
     'max-classes-per-file', 'newline-per-chained-call', 'no-bitwise', 'no-console', 'no-inner-declarations', 'no-lonely-if', 'no-nested-ternary', 'no-new', 'no-param-reassign', 'no-plusplus',
     'no-prototype-builtins', 'no-restricted-syntax', 'no-underscore-dangle', 'no-unused-expressions', 'object-shorthand', 'one-var', 'one-var-declaration-per-line', 'spaced-comment'];
   public eslintModifiedRules: EslintModifiedRule = {
@@ -178,7 +184,7 @@ export class LintGolem {
   get langOptsObject() {
     return {
       languageOptions: {
-        ecmaVersion: 'latest' as 'latest',
+        ecmaVersion: 'latest' as const,
         parserOptions: {
           project: this.tsconfigPaths,
           tsconfigRootDir: this.rootDir,
@@ -200,6 +206,7 @@ export class LintGolem {
       eslint.configs.recommended,
       ...tseslint.configs.recommendedTypeChecked,
       plugin_n.configs['flat/recommended-script'],
+      prettierConfig,
       this.rulesObject,
       this.disabledFilesObject,
     ] as const;
@@ -238,13 +245,18 @@ export class LintGolem {
   }
 
   public static async init(config: Omit<LintGolemOptions, 'tsconfigPaths'> & { tsconfigPaths?: Array<string> }, verbose = false) {
-    const tsconfigPaths = await glob([
-      `tsconfig.json`,
-      `*.tsconfig.json`,
-      ...(config.tsconfigPaths ?? []),
-    ], { cwd: config.rootDir, ignore: config.ignoreGlobs });
-    if (tsconfigPaths.length === 0) throw new Error('No tsconfig.json found', { cause: 'Missing projectRoot / glob failure' });
-    if (verbose) console.info('Found tsconfigPaths:', tsconfigPaths.join(', \n'));
-    return new LintGolem({ ...config, tsconfigPaths });
+    try {
+      const tsconfigPaths = await glob([
+        `tsconfig.json`,
+        `*.tsconfig.json`,
+        ...(config.tsconfigPaths ?? []),
+      ], { cwd: config.rootDir, ignore: config.ignoreGlobs });
+      if (tsconfigPaths.length === 0) throw new Error('No tsconfig.json found', { cause: 'Missing projectRoot / glob failure' });
+      if (verbose) console.info('Found tsconfigPaths:', tsconfigPaths.join(', \n'));
+      return new LintGolem({ ...config, tsconfigPaths });
+    } catch (error) {
+      console.info('Error:', error);
+      throw error;
+    }
   }
 }
