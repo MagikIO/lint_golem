@@ -1,40 +1,40 @@
 {
   "name": "@magik_io/lint_golem",
   "description": "A really magik lint golem",
-  "version": "1.5.0",
+  "version": "2.0.1",
   "engines": {
-    "node": "v21.*.*",
+    "node": "21.*.*",
     "npm": "10.*.*"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "test": "vitest run --coverage --config ./vitest.config.ts",
     "publish": "npm publish --access public"
   },
   "peerDependencies": {
-    "@eslint/eslintrc": "^3.0.2",
-    "@eslint/js": "^9.1.1",
-    "@types/eslint": "^8.56.10",
     "eslint": "^9.1.1",
     "typescript-eslint": "^7.8.0"
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.0.2",
-    "@eslint/js": "^9.1.1",
-    "@types/eslint": "^8.56.10",
-    "eslint": "^9.1.1",
-    "eslint-plugin-n": "^17.3.1",
+    "@eslint/js": "^9.2.0",
+    "eslint": "^9.2.0",
+    "eslint-plugin-n": "^17.4.0",
     "fast-glob": "^3.3.2",
     "typescript-eslint": "^7.8.0"
   },
   "devDependencies": {
+    "@types/eslint": "^8.56.10",
     "@types/eslint__js": "^8.42.3",
-    "@types/node": "^20.12.7",
-    "@vitest/coverage-v8": "^1.5.2",
+    "@types/node": "^20.12.8",
+    "@vitest/coverage-v8": "^1.6.0",
     "typescript": "^5.4.5",
-    "vitest": "^1.5.2"
+    "vitest": "^1.6.0"
   },
   "authors": [
     {

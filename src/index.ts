@@ -1,4 +1,4 @@
-/* eslint-disable no-useless-escape */
+
 import eslint from '@eslint/js';
 import plugin_n from 'eslint-plugin-n';
 import { glob } from 'fast-glob';
