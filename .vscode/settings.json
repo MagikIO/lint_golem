@@ -14,5 +14,6 @@
     "**/.*": false,
     "eslint*.*": false
   },
-  "explorerExclude.backup": {}
+  "explorerExclude.backup": {},
+  "cSpell.words": ["stylelintrc"]
 }

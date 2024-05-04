@@ -2,7 +2,9 @@ import eslint from '@eslint/js';
 import plugin_n from 'eslint-plugin-n';
 import tseslint from 'typescript-eslint';
 import { describe, it, expect, suite } from 'vitest'
-import { LintGolem, type Types } from '../src/index.ts'
+import { LintGolem, type Types } from '../src/index'
+
+import prettierConfig from 'eslint-config-prettier';
 import { resolve } from 'node:path';
 
 suite('LintGolem', () => {
@@ -80,7 +82,7 @@ suite('LintGolem', () => {
     it('should throw an error if no default tsconfig can be found', async () => {
       await expect(async () => LintGolem.init({
         rootDir: __dirname,
-        ignoreGlobs: ['*.package.json', 'package.json'],
+        ignoreGlobs: ['*.tsconfig.json', 'tsconfig.json', 'tsconfig.*.json'],
         disableTypeCheckOn: ['**/*.js'],
       }, true)).rejects.toThrowError()
 
@@ -124,6 +126,7 @@ suite('LintGolem', () => {
         eslint.configs.recommended,
         ...tseslint.configs.recommendedTypeChecked,
         plugin_n.configs['flat/recommended-script'],
+        prettierConfig,
         summon.rulesObject,
         summon.disabledFilesObject,
       ] as const)

@@ -1,6 +1,11 @@
+const tseslint = require('typescript-eslint');
 const { LintGolem } = require('./dist/index.js');
 
-module.exports = new LintGolem({
-  rootDir: __dirname,
-  projectRoots: ['./tsconfig.eslint.json'],
-}).config;
+module.exports = tseslint.config(
+  ...new LintGolem({
+    rootDir: __dirname,
+    tsconfigPaths: [
+      './tsconfig.eslint.json'
+    ],
+  }).config
+);
