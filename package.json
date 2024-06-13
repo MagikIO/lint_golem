@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "test": "vitest run --coverage --config ./vitest.config.ts",
-    "publish": "npm publish --access public"
+    "iterate": "npm version patch && git push origin main --tags && npm publish --access public"
   },
   "peerDependencies": {
     "eslint": "^9.*.*",
