@@ -16,11 +16,6 @@
     "test": "vitest run --coverage --config ./vitest.config.ts",
     "iterate": "npm version patch && git push origin main --tags && npm publish --access public"
   },
-  "peerDependencies": {
-    "eslint": "^9.4.0",
-    "@eslint/js": " ^9.4.0",
-    "typescript-eslint": "^7.13.0"
-  },
   "dependencies": {
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.4.0",
