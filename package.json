@@ -1,7 +1,7 @@
 {
   "name": "@magik_io/lint_golem",
   "description": "A really magik lint golem",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "engines": {
     "node": "21.*.*",
     "npm": "10.*.*"
