@@ -101,9 +101,7 @@ export class LintGolem {
     'arrow-parens': [
       'error',
       'as-needed',
-      {
-        requireForBlockBody: true,
-      },
+      { requireForBlockBody: true },
     ],
     'object-curly-newline': [
       'error',
@@ -185,7 +183,7 @@ export class LintGolem {
   get langOptsObject() {
     return {
       languageOptions: {
-        ecmaVersion: '2022' as const,
+        ecmaVersion: 'latest' as const,
         parserOptions: {
           projectService: this.tsconfigPaths,
           tsconfigRootDir: this.rootDir,
