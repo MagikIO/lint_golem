@@ -23,7 +23,7 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-n": "^17.9.0",
     "fast-glob": "^3.3.2",
-    "typescript-eslint": "^7.13.0"
+    "typescript-eslint": "^8.0.0-alpha.30"
   },
   "devDependencies": {
     "@types/eslint": "^8.56.10",
