@@ -57,5 +57,6 @@
     "skipLibCheck": true /* Skip type checking all .d.ts files. */,
     "noEmit": true
   },
-  "include": ["./vitest.config.ts", "./test/index.test.ts", "./src/**/*.ts"]
+  "include": ["./vitest.config.ts", "./test/index.test.ts", "./src/**/*.ts"],
+  "exclude": ["./node_modules/**"]
 }
