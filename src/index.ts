@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import eslint from '@eslint/js';
 import plugin_n from 'eslint-plugin-n';
 import { glob } from 'fast-glob';
@@ -7,8 +8,8 @@ import { LintGolemError } from './LintGolemError.js';
 
 type PluginPrefixes = 'n/' | '@typescript-eslint/';
 
-type EslintOption = Record<string, boolean | string | Array<any>>;
-type EslintModifiedRule = Record<string | `${PluginPrefixes}string`, [action: 'off' | 'error' | 'warn', ...Array<string | EslintOption>]>;
+type EslintOption = Record<string, boolean | string | Array<unknown>>;
+type EslintModifiedRule = Record<string | `${PluginPrefixes}${string}`, [action: 'off' | 'error' | 'warn', ...Array<string | EslintOption>]>;
 type DisabledRuleArray = Array<string>;
 
 interface LintGolemOptions {
@@ -185,7 +186,7 @@ export class LintGolem {
       languageOptions: {
         ecmaVersion: 'latest' as const,
         parserOptions: {
-          projectService: this.tsconfigPaths,
+          project: this.tsconfigPaths,
           tsconfigRootDir: this.rootDir,
         }
       }
@@ -211,9 +212,10 @@ export class LintGolem {
     ] as const;
   }
 
-  protected formatJSON(json: Record<string, any> | Array<string>) {
+  protected formatJSONUnbound(json: Record<string, unknown> | Array<string>) {
     return JSON.stringify(json, null, "\t");
   }
+  protected formatJSON = (json: Record<string, unknown> | Array<string>) => this.formatJSONUnbound(json);
 
   protected styles = {
     lintGolemStyle: `background-color: #e636dc; color: #000; padding: 3px 2px; border-radius: 6px; font-weight: bold; font-size: 15px`,

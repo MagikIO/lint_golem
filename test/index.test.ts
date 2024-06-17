@@ -43,7 +43,6 @@ suite('LintGolem', () => {
         '**/*.map.js',
         '**/*.js.map',
         '**/*.mjs.map',
-        '**/node_modules',
         '**/dist',
         '**/.stylelintrc',
         '**/CHANGELOG.md',
@@ -56,6 +55,8 @@ suite('LintGolem', () => {
         '**/.nyc_output',
         '**/.yarn',
         '**/public/bundle/*',
+        "**/node_modules/**",
+        "**/.git/objects/**",
         '**/ignore',
       ])
     })
@@ -150,7 +151,6 @@ suite('LintGolem', () => {
 
       const config = { ...rules }
 
-      // @ts-expect-error
       summon.disableTypeCheckOn = undefined
 
       expect(rules).toEqual(config)

@@ -7,5 +7,8 @@ module.exports = tseslint.config(
     tsconfigPaths: [
       './tsconfig.eslint.json'
     ],
+    "disabledRules": [
+      "@typescript-eslint/no-require-imports",
+    ]
   }).config
 );
