@@ -34,7 +34,6 @@ export class LintGolem {
     '**/*.map.js',
     '**/*.js.map',
     '**/*.mjs.map',
-    '**/node_modules',
     '**/dist',
     '**/.stylelintrc',
     '**/CHANGELOG.md',
@@ -47,6 +46,8 @@ export class LintGolem {
     '**/.nyc_output',
     '**/.yarn',
     '**/public/bundle/*',
+    '**/node_modules/**',
+    "**/.git/objects/**"
   ];
   public tsconfigPaths: string[] = [];
 
@@ -184,9 +185,9 @@ export class LintGolem {
   get langOptsObject() {
     return {
       languageOptions: {
-        ecmaVersion: 'latest' as const,
+        ecmaVersion: '2022' as const,
         parserOptions: {
-          project: this.tsconfigPaths,
+          projectService: this.tsconfigPaths,
           tsconfigRootDir: this.rootDir,
         }
       }
@@ -223,7 +224,7 @@ export class LintGolem {
   }
 
   protected get formatErrorAsString() {
-    return `%c LintGolem Warning %c\n\%c Rule Disabled AND Modified %c\n  The rule: %c%s%c is set in both your \`rules\` object %s and your \`disabledRules\` array %s`;
+    return `%c LintGolem Warning %c\n %c Rule Disabled AND Modified %c\n  The rule: %c%s%c is set in both your \`rules\` object %s and your \`disabledRules\` array %s`;
   }
 
   protected warnUserOfRuleIssue(error: LintGolemError) {
