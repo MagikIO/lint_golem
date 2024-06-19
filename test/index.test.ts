@@ -1,10 +1,9 @@
-import eslint from '@eslint/js';
-import plugin_n from 'eslint-plugin-n';
+import * as eslint from '@eslint/js';
+import * as plugin_n from 'eslint-plugin-n';
 import tseslint from 'typescript-eslint';
 import { describe, it, expect, suite } from 'vitest'
 import { LintGolem, type Types } from '../src/index'
-
-import prettierConfig from 'eslint-config-prettier';
+import * as prettierConfig from 'eslint-config-prettier';
 import { resolve } from 'node:path';
 
 suite('LintGolem', () => {
@@ -134,7 +133,7 @@ suite('LintGolem', () => {
     })
 
     it('should return the process.cwd() as the default rootDir', () => {
-      // @ts-expect-error
+      // @ts-expect-error - Testing private property
       const defaultRootSummon = new LintGolem({
         ignoreGlobs: ['**/ignore'],
         tsconfigPaths: ['/root/project'],
