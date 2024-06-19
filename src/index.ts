@@ -1,14 +1,14 @@
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 import eslint from '@eslint/js';
+import prettierConfig from 'eslint-config-prettier';
 import plugin_n from 'eslint-plugin-n';
 import { glob } from 'fast-glob';
 import tseslint from 'typescript-eslint';
-import prettierConfig from 'eslint-config-prettier';
 import { LintGolemError } from './LintGolemError.js';
 
 type PluginPrefixes = 'n/' | '@typescript-eslint/';
 
 type EslintOption = Record<string, boolean | string | Array<unknown>>;
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 type EslintModifiedRule = Record<string | `${PluginPrefixes}${string}`, [action: 'off' | 'error' | 'warn', ...Array<string | EslintOption>]>;
 type DisabledRuleArray = Array<string>;
 
@@ -19,6 +19,10 @@ interface LintGolemOptions {
   disableTypeCheckOn?: string[];
   disabledRules?: DisabledRuleArray;
   rules?: EslintModifiedRule;
+  useProjectService?: boolean;
+  jsx?: boolean;
+  ecmaVersion?: 6 | 7 | 8 | 9 | 10 | 11 | 12 | 2015 | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 | 2022 | 'latest';
+
 }
 
 export interface Types {
@@ -29,6 +33,15 @@ export interface Types {
 }
 
 export class LintGolem {
+  private languageOptionOverrides = {
+    ecmaVersion: 'latest' as LintGolemOptions['ecmaVersion'],
+    parserOptions: {
+      jsx: false,
+      allowAutomaticSingleRunInference: true,
+      EXPERIMENTAL_useProjectService: false,
+    }
+  }
+
   public rootDir: string = process.cwd();
   public ignoreGlobs: string[] = [
     '**/gen',
@@ -63,6 +76,7 @@ export class LintGolem {
     '@typescript-eslint/no-explicit-any', '@typescript-eslint/ban-ts-comment', '@typescript-eslint/no-var-requires', '@typescript-eslint/no-unsafe-call', '@typescript-eslint/no-unsafe-assignment',
     '@typescript-eslint/no-unsafe-member-access', '@typescript-eslint/unbound-method', '@typescript-eslint/restrict-template-expressions', '@typescript-eslint/no-misused-promises',
     '@typescript-eslint/array-type', '@typescript-eslint/no-unnecessary-type-assertion', '@typescript-eslint/lines-between-class-members', '@typescript-eslint/naming-convention',
+    '@typescript-eslint/no-require-imports', '@typescript-eslint/no-var-requires',
   ]
   public typescriptModifiedRules: EslintModifiedRule = {
     '@typescript-eslint/no-inferrable-types': ['error', { ignoreParameters: false }],
@@ -104,14 +118,8 @@ export class LintGolem {
       'as-needed',
       { requireForBlockBody: true },
     ],
-    'object-curly-newline': [
-      'error',
-      { multiline: true, consistent: true },
-    ],
-    'no-shadow': [
-      'error',
-      { hoist: 'never' },
-    ],
+    'object-curly-newline': ['error', { multiline: true, consistent: true }],
+    'no-shadow': ['error', { hoist: 'never' }],
   }
   public get eslintRules() {
     return {
@@ -124,15 +132,18 @@ export class LintGolem {
   }
 
   public get rules() {
-    return {
+    return ({
       ...this.eslintRules,
       ...this.nodeRules,
       ...this.typescriptRules,
-    }
+    })
   }
 
-  constructor({ rootDir, disableTypeCheckOn, ignoreGlobs, tsconfigPaths, rules, disabledRules }: LintGolemOptions) {
+  constructor({ rootDir, disableTypeCheckOn, ignoreGlobs, tsconfigPaths, rules, disabledRules, useProjectService, jsx, ecmaVersion }: LintGolemOptions) {
     try {
+      this.languageOptionOverrides.parserOptions.EXPERIMENTAL_useProjectService = useProjectService ?? false;
+      this.languageOptionOverrides.parserOptions.jsx = jsx ?? false;
+      this.languageOptionOverrides.ecmaVersion = ecmaVersion ?? 'latest';
       this.rootDir = rootDir ?? this.rootDir;
       this.tsconfigPaths = tsconfigPaths;
       if (ignoreGlobs) this.ignoreGlobs = [...this.ignoreGlobs, ...ignoreGlobs];
@@ -169,39 +180,52 @@ export class LintGolem {
   }
 
   get ignoresObject() {
-    return {
-      ignores: this.ignoreGlobs,
-    }
+    return ({ ignores: this.ignoreGlobs })
   }
 
   get disabledFilesObject() {
-    return {
-      files: this.disableTypeCheckOn,
-      ...tseslint.configs.disableTypeChecked,
-    }
+    return ({ files: this.disableTypeCheckOn, ...tseslint.configs.disableTypeChecked })
   }
 
   get langOptsObject() {
-    return {
-      languageOptions: {
-        ecmaVersion: 'latest' as const,
-        parserOptions: {
-          project: this.tsconfigPaths,
-          tsconfigRootDir: this.rootDir,
-        }
+    const langOpts = {
+      ecmaVersion: 'latest' as const,
+      parserOptions: {
+        allowAutomaticSingleRunInference: true,
+        jsDocParsingMode: 'none',
+        project: this.tsconfigPaths,
+        tsconfigRootDir: this.rootDir,
+      }
+    } as {
+      ecmaVersion: 6 | 7 | 8 | 9 | 10 | 11 | 12 | 2015 | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 | 2022 | 'latest';
+      parserOptions: {
+        jsDocParsingMode: 'none';
+        project: string[] | string;
+        tsconfigRootDir: string;
+        EXPERIMENTAL_useProjectService?: boolean;
+        jsx?: boolean;
       }
     }
+
+    if (this.languageOptionOverrides.parserOptions.EXPERIMENTAL_useProjectService) {
+      langOpts.parserOptions.EXPERIMENTAL_useProjectService = true;
+    }
+    if (this.languageOptionOverrides.parserOptions.jsx) {
+      langOpts.parserOptions.jsx = true;
+    }
+    if (this.languageOptionOverrides.ecmaVersion !== 'latest') {
+      langOpts.ecmaVersion = this.languageOptionOverrides.ecmaVersion!
+    }
+
+    return ({ languageOptions: langOpts })
   }
 
   get rulesObject() {
-    return {
-      ...this.langOptsObject,
-      rules: this.rules,
-    }
+    return ({ ...this.langOptsObject, rules: this.rules })
   }
 
   get config() {
-    return [
+    return ([
       this.ignoresObject,
       eslint.configs.recommended,
       ...tseslint.configs.recommendedTypeChecked,
@@ -209,7 +233,7 @@ export class LintGolem {
       prettierConfig,
       this.rulesObject,
       this.disabledFilesObject,
-    ] as const;
+    ] as const);
   }
 
   protected formatJSONUnbound(json: Record<string, unknown> | Array<string>) {

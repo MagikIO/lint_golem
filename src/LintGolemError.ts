@@ -1,5 +1,6 @@
 type PluginPrefixes = 'n/' | '@typescript-eslint/';
-type EslintOption = Record<string, boolean | string | Array<any>>;
+type EslintOption = Record<string, boolean | string | Array<unknown>>;
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 type EslintModifiedRule = Record<string | `${PluginPrefixes}string`, [action: 'off' | 'error' | 'warn', ...Array<string | EslintOption>]>;
 
 export class LintGolemError extends Error {
