@@ -146,10 +146,10 @@ suite('LintGolem', () => {
 
     it('should return when rules is not provided', () => {
       const configArray = summon.config
-      const rules = configArray[configArray.length - 2]
+      const rules = configArray[configArray.length - 2] as Record<string, unknown>
 
       const config = { ...rules }
-
+      // @ts-expect-error - Testing private property
       summon.disableTypeCheckOn = undefined
 
       expect(rules).toEqual(config)

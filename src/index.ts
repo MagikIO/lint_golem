@@ -210,9 +210,7 @@ export class LintGolem {
     if (this.languageOptionOverrides.parserOptions.EXPERIMENTAL_useProjectService) {
       langOpts.parserOptions.EXPERIMENTAL_useProjectService = true;
     }
-    if (this.languageOptionOverrides.parserOptions.jsx) {
-      langOpts.parserOptions.jsx = true;
-    }
+    if (this.languageOptionOverrides.parserOptions.jsx) langOpts.parserOptions.jsx = true;
     if (this.languageOptionOverrides.ecmaVersion !== 'latest') {
       langOpts.ecmaVersion = this.languageOptionOverrides.ecmaVersion!
     }
