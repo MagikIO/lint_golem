@@ -1,5 +1,5 @@
 const tseslint = require('typescript-eslint');
-const { LintGolem } = require('./dist/index.js');
+const { LintGolem } = require('./dist/index.cjs');
 
 module.exports = tseslint.config(
   ...new LintGolem({

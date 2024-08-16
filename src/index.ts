@@ -3,7 +3,10 @@ import prettierConfig from 'eslint-config-prettier';
 import plugin_n from 'eslint-plugin-n';
 import { glob } from 'fast-glob';
 import tseslint from 'typescript-eslint';
+
 import { LintGolemError } from './LintGolemError.js';
+
+const { configs: PluginNConfig } = plugin_n;
 
 type PluginPrefixes = 'n/' | '@typescript-eslint/';
 
@@ -225,9 +228,9 @@ export class LintGolem {
   get config() {
     return ([
       this.ignoresObject,
-      eslint.configs.recommended,
+      eslint.configs.recommended as Record<string, unknown>,
       ...tseslint.configs.recommendedTypeChecked,
-      plugin_n.configs['flat/recommended-script'],
+      PluginNConfig['flat/recommended-script'],
       prettierConfig,
       this.rulesObject,
       this.disabledFilesObject,

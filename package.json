@@ -2,37 +2,53 @@
   "name": "@magik_io/lint_golem",
   "description": "A really magik lint golem",
   "version": "2.2.3",
+  "sideEffects": false,
   "engines": {
-    "node": "21.*.*",
-    "npm": "10.*.*"
+    "node": ">= 22.0.0",
+    "npm": "10.*.*",
+    "yarn": "4.*.*"
   },
-  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./LintGolemError": {
+      "types": "./dist/LintGolemError.d.ts",
+      "import": "./dist/LintGolemError.mjs",
+      "require": "./dist/LintGolemError.cjs"
+    }
+  },
+  "module": "dist/index.mjs",
+  "main": "dist/index.cjs",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc --project tsconfig.json",
+    "build": "npx unbuild",
     "test": "vitest run --coverage --config ./vitest.config.ts",
-    "iterate": "npm version patch && git push origin main --tags && npm publish --access public"
+    "iterate": "yarn version patch && git push origin main --tags && yarn npm publish --access public"
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.1.0",
-    "@eslint/js": "^9.7.0",
-    "eslint": "^9.7.0",
+    "@eslint/js": "^9.9.0",
+    "@typescript-eslint/utils": "^8.1.0",
+    "eslint": "^9.9.0",
     "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-n": "^17.9.0",
+    "eslint-plugin-n": "^17.10.2",
     "fast-glob": "^3.3.2",
-    "typescript-eslint": "^7.16.0"
+    "typescript-eslint": "^8.1.0"
   },
   "devDependencies": {
-    "@types/eslint": "^8.56.10",
+    "@types/eslint": "^9.6.0",
     "@types/eslint-config-prettier": "^6.11.3",
     "@types/eslint__js": "^8.42.3",
-    "@types/node": "^20.14.10",
-    "@vitest/coverage-v8": "^2.0.3",
-    "typescript": "^5.5.3",
-    "vitest": "^2.0.3"
+    "@types/node": "^22.3.0",
+    "@vitest/coverage-v8": "^2.0.5",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
   },
   "authors": [
     {
@@ -50,5 +66,24 @@
     "> 1%"
   ],
   "license": "MIT",
-  "packageManager": "yarn@4.3.1"
+  "packageManager": "yarn@4.4.0",
+  "unbuild": {
+    "rollup": {
+      "esbuild": {
+        "tsconfigRaw": {
+          "extends": "./tsconfig.json",
+          "compilerOptions": {
+            "outDir": "dist",
+            "rootDir": "src",
+            "declaration": true,
+            "experimentalDecorators": true,
+            "target": "ES2022"
+          },
+          "include": [
+            "./src/**/*.ts"
+          ]
+        }
+      }
+    }
+  }
 }
