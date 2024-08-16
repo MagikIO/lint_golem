@@ -29,7 +29,7 @@
   "scripts": {
     "build": "npx unbuild",
     "test": "vitest run --coverage --config ./vitest.config.ts",
-    "iterate": "yarn version patch && git push origin main --tags && yarn npm publish --access public"
+    "iterate": "yarn version minor && git push origin main --tags && yarn npm publish --access public"
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.1.0",
