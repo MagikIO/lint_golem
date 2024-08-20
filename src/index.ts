@@ -1,11 +1,11 @@
 import eslint from '@eslint/js';
 import prettierConfig from 'eslint-config-prettier';
 import plugin_n from 'eslint-plugin-n';
-import { glob } from 'fast-glob';
+import globPkg from 'fast-glob';
 import tseslint from 'typescript-eslint';
+import { LintGolemError } from './LintGolemError';
 
-import { LintGolemError } from './LintGolemError.js';
-
+const { glob } = globPkg;
 const { configs: PluginNConfig } = plugin_n;
 
 type PluginPrefixes = 'n/' | '@typescript-eslint/';
