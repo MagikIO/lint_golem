@@ -3,11 +3,6 @@
   "description": "A really magik lint golem",
   "version": "3.1.0",
   "sideEffects": false,
-  "engines": {
-    "node": ">= 22.6.0",
-    "npm": "10.*.*",
-    "yarn": "4.*.*"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -27,9 +22,9 @@
     "dist"
   ],
   "scripts": {
-    "build": "npx unbuild",
+    "build": "unbuild",
     "test": "vitest run --coverage --config ./vitest.config.ts",
-    "iterate": "yarn version minor && git push origin main --tags && yarn npm publish --access public"
+    "iterate": "pnpm version minor && git push origin main --tags && pnpm publish --access public --no-git-checks"
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.1.0",
