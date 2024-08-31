@@ -12,7 +12,10 @@
     "**/.DS_Store": false,
     "**/Thumbs.db": false,
     "**/.*": false,
-    "eslint*.*": false
+    "eslint*.*": false,
+    "**/tmp/**": false,
+    "**/node_modules/**": false,
+    "**/.git/objects/**": false
   },
   "explorerExclude.backup": {},
   "cSpell.words": ["stylelintrc"]
