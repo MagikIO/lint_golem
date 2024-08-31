@@ -1,7 +1,7 @@
 {
   "name": "@magik_io/lint_golem",
   "description": "A really magik lint golem",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "sideEffects": false,
   "exports": {
     ".": {
