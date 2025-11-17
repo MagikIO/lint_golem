@@ -6,7 +6,8 @@ import tseslint from 'typescript-eslint';
 import { LintGolemError } from './LintGolemError';
 
 const { glob } = globPkg;
-const { configs: PluginNConfig } = plugin_n;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const { configs: PluginNConfig }: { configs: any } = plugin_n;
 
 type PluginPrefixes = 'n/' | '@typescript-eslint/';
 
@@ -225,11 +226,20 @@ export class LintGolem {
     return ({ ...this.langOptsObject, rules: this.rules })
   }
 
-  get config() {
+  get config(): readonly [
+    { ignores: string[] },
+    Record<string, unknown>,
+    ...typeof tseslint.configs.recommendedTypeChecked,
+    typeof PluginNConfig['flat/recommended-script'],
+    typeof prettierConfig,
+    { languageOptions: object; rules: Record<string, string | [string, ...Array<string | EslintOption>]> },
+    { files: string[] } & typeof tseslint.configs.disableTypeChecked,
+  ] {
     return ([
       this.ignoresObject,
       eslint.configs.recommended as Record<string, unknown>,
       ...tseslint.configs.recommendedTypeChecked,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       PluginNConfig['flat/recommended-script'],
       prettierConfig,
       this.rulesObject,

@@ -4,7 +4,7 @@ const { LintGolem } = require('./dist/index.cjs');
 module.exports = tseslint.config(
   ...new LintGolem({
     rootDir: __dirname,
-    tsconfigPaths: 'tsconfig.json',
+    tsconfigPaths: ['tsconfig.json'],
     ecmaVersion: 2022,
     "disabledRules": [
       "@typescript-eslint/no-require-imports",
