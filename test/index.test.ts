@@ -3,7 +3,7 @@ import * as plugin_n from 'eslint-plugin-n';
 import tseslint from 'typescript-eslint';
 import { describe, it, expect, suite } from 'vitest'
 import { LintGolem, type Types } from '../src/index'
-import * as prettierConfig from 'eslint-config-prettier';
+import prettierConfig from 'eslint-config-prettier';
 import { resolve } from 'node:path';
 
 suite('LintGolem', () => {
@@ -108,6 +108,8 @@ suite('LintGolem', () => {
         languageOptions: {
           ecmaVersion: 'latest',
           parserOptions: {
+            allowAutomaticSingleRunInference: true,
+            jsDocParsingMode: 'none',
             project: summon.tsconfigPaths,
             tsconfigRootDir: summon.rootDir,
           },
