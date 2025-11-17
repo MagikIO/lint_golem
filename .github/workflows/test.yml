@@ -27,9 +27,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22.x"
-          cache: "pnpm"
+      - name: "Install pnpm"
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.22.0
       - name: "Install Deps"
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
       - name: "Test"
         run: pnpm test
       - name: "Upload Coverage"
