@@ -38,6 +38,7 @@ The main goal is to provide sensible defaults while allowing easy customization 
 ## Requirements
 
 - **Node.js** 22 or later
+- **pnpm** 9.x (recommended package manager)
 - **ESLint** 9.x (flat config support)
 - **typescript-eslint** 8.x
 - **TypeScript** 5.x (for type-aware linting)
@@ -45,6 +46,12 @@ The main goal is to provide sensible defaults while allowing easy customization 
 ---
 
 ## Installation
+
+### pnpm (recommended)
+
+```bash
+pnpm add @magik_io/lint_golem typescript-eslint eslint -D
+```
 
 ### npm
 
@@ -56,12 +63,6 @@ npm install --save-dev @magik_io/lint_golem typescript-eslint eslint
 
 ```bash
 yarn add @magik_io/lint_golem typescript-eslint eslint -D
-```
-
-### pnpm
-
-```bash
-pnpm add @magik_io/lint_golem typescript-eslint eslint -D
 ```
 
 ---
@@ -670,11 +671,12 @@ module.exports = tseslint.config(
 ### Running Tests
 
 ```bash
-# Run tests with coverage
+# Run tests with coverage (recommended)
 pnpm test
 
-# Or using npm
+# Or using npm/yarn
 npm test
+yarn test
 ```
 
 ### Test Framework
@@ -698,7 +700,7 @@ The test suite covers:
 ### CI/CD
 
 GitHub Actions workflows:
-- **test.yml**: Runs tests on pull requests with coverage comparison
+- **test.yml**: Runs tests on pull requests with coverage comparison (uses pnpm)
 - **dependency-review.yml**: Checks for vulnerable dependencies
 
 ---
@@ -766,9 +768,11 @@ npm install --save-dev eslint typescript-eslint
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Ensure tests pass: `pnpm test`
-5. Submit a pull request
+3. Install dependencies: `pnpm install`
+4. Make your changes
+5. Ensure tests pass: `pnpm test`
+6. Build: `pnpm build`
+7. Submit a pull request
 
 ---
 

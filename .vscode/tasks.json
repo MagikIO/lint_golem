@@ -8,7 +8,6 @@
       "runOptions": {
         "instanceLimit": 1,
         "reevaluateOnRerun": false,
-        "runOn": "folderOpen"
       },
       "group": "build",
       "icon": {
