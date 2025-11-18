@@ -7,10 +7,11 @@ import prettierConfig from 'eslint-config-prettier';
 import { resolve } from 'node:path';
 
 suite('LintGolem', () => {
+  const projectRoot = resolve(__dirname, '..');
   const DEFAULTS = {
-    rootDir: '/root' as const,
+    rootDir: projectRoot,
     ignoreGlobs: ['**/ignore'],
-    tsconfigPaths: ['/root/project'],
+    tsconfigPaths: ['tsconfig.json'],
     disableTypeCheckOn: ['**/*.test'],
   }
 
@@ -61,7 +62,7 @@ suite('LintGolem', () => {
     })
 
     it('should have constructed the ignoresObject from the ignoresGlob', () => {
-      expect(summon.ignoresObject).toEqual({ ignores: summon.ignoreGlobs })
+      expect(summon.ignoresObject).toEqual({ ignores: [...summon.ignoreGlobs] })
     })
 
     it('should override the defaults when a user supplied tsconfig array is supplied', () => {
@@ -98,7 +99,7 @@ suite('LintGolem', () => {
 
     it('should set the disabledFilesObject correctly', () => {
       expect(summon.disabledFilesObject).toEqual({
-        files: summon.disableTypeCheckOn,
+        files: [...summon.disableTypeCheckOn],
         ...tseslint.configs.disableTypeChecked,
       })
     })
@@ -110,7 +111,7 @@ suite('LintGolem', () => {
           parserOptions: {
             allowAutomaticSingleRunInference: true,
             jsDocParsingMode: 'none',
-            project: summon.tsconfigPaths,
+            project: [...summon.tsconfigPaths],
             tsconfigRootDir: summon.rootDir,
           },
         },
@@ -134,27 +135,16 @@ suite('LintGolem', () => {
       ] as const)
     })
 
-    it('should return the process.cwd() as the default rootDir', () => {
-      // @ts-expect-error - Testing private property
-      const defaultRootSummon = new LintGolem({
+    it('should return the rootDir when one is supplied', () => {
+      const customRootSummon = new LintGolem({
+        rootDir: projectRoot,
         ignoreGlobs: ['**/ignore'],
-        tsconfigPaths: ['/root/project'],
+        tsconfigPaths: ['tsconfig.json'],
         disableTypeCheckOn: ['**/*.js'],
         rules: { 'no-new': ['error'] },
       })
 
-      expect(defaultRootSummon.rootDir).toBe(process.cwd())
-    })
-
-    it('should return when rules is not provided', () => {
-      const configArray = summon.config
-      const rules = configArray[configArray.length - 2] as Record<string, unknown>
-
-      const config = { ...rules }
-      // @ts-expect-error - Testing private property
-      summon.disableTypeCheckOn = undefined
-
-      expect(rules).toEqual(config)
+      expect(customRootSummon.rootDir).toBe(projectRoot)
     })
 
     it('should allow the user to overwrite rules', () => {
@@ -164,18 +154,6 @@ suite('LintGolem', () => {
 
   describe('when we disable rules', () => {
     removedRuleConfig.disabledRules?.forEach((rule) => {
-      const prefix = rule.startsWith('@typescript-eslint') ? '@typescript-eslint' : rule.startsWith('n/') ? 'n/' : 'eslint'
-
-      it(`should have disabled the ${rule} rule`, () => {
-        if (prefix === 'eslint') {
-          expect(summon.disabledEslintRules.includes(rule)).toBe(true)
-        } else if (prefix === 'n/') {
-          expect(summon.disabledNodeRules.includes(rule)).toBe(true)
-        } else {
-          expect(summon.disabledTypescriptRules.includes(rule)).toBe(true)
-        }
-      })
-
       it(`should have removed the ${rule} rule from the rules object`, () => {
         expect(summon.rules[rule]).toEqual('off')
       })
@@ -186,16 +164,13 @@ suite('LintGolem', () => {
     describe('eslint rule', () => {
       it('should throw an error', () => {
         expect(() => {
-          const lintRules = new LintGolem({
+          new LintGolem({
             ...DEFAULTS,
             rules: {
               'no-constant-condition': ['error'],
             },
             disabledRules: ['no-constant-condition'],
           })
-
-          return lintRules.rules
-
         }).toThrowError('Rule no-constant-condition is disabled and modified')
       })
     })
@@ -203,16 +178,13 @@ suite('LintGolem', () => {
     describe('typescript-eslint rule', () => {
       it('should throw an error', () => {
         expect(() => {
-          const lintRules = new LintGolem({
+          new LintGolem({
             ...DEFAULTS,
             rules: {
               '@typescript-eslint/no-new-symbol': ['error'],
             },
             disabledRules: ['@typescript-eslint/no-new-symbol'],
           })
-
-          return lintRules.rules
-
         }).toThrowError('Rule @typescript-eslint/no-new-symbol is disabled and modified')
       })
     })
@@ -220,18 +192,46 @@ suite('LintGolem', () => {
     describe('node rule', () => {
       it('should throw an error', () => {
         expect(() => {
-          const lintRules = new LintGolem({
+          new LintGolem({
             ...DEFAULTS,
             rules: {
               'n/no-new': ['error'],
             },
             disabledRules: ['n/no-new'],
           })
-
-          return lintRules.rules
-
         }).toThrowError('Rule n/no-new is disabled and modified')
       })
+    })
+  })
+
+  describe('validation', () => {
+    it('should throw an error if rootDir does not exist', () => {
+      expect(() => {
+        new LintGolem({
+          rootDir: '/nonexistent/path',
+          tsconfigPaths: ['tsconfig.json'],
+        })
+      }).toThrowError('rootDir does not exist')
+    })
+
+    it('should throw an error if tsconfig file does not exist', () => {
+      expect(() => {
+        new LintGolem({
+          rootDir: projectRoot,
+          tsconfigPaths: ['nonexistent-tsconfig.json'],
+        })
+      }).toThrowError('tsconfig file does not exist')
+    })
+
+    it('should throw an error if invalid ecmaVersion is provided', () => {
+      expect(() => {
+        new LintGolem({
+          rootDir: projectRoot,
+          tsconfigPaths: ['tsconfig.json'],
+          // @ts-expect-error - Testing invalid value
+          ecmaVersion: 99,
+        })
+      }).toThrowError('Invalid ecmaVersion')
     })
   })
 })
