@@ -2,17 +2,17 @@ import eslint from '@eslint/js';
 import prettierConfig from 'eslint-config-prettier';
 import plugin_n from 'eslint-plugin-n';
 import globPkg from 'fast-glob';
+import { existsSync, statSync } from 'node:fs';
+import { resolve } from 'node:path';
 import tseslint from 'typescript-eslint';
 import { LintGolemError } from './LintGolemError';
 
 const { glob } = globPkg;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const { configs: PluginNConfig }: { configs: any } = plugin_n;
 
 type PluginPrefixes = 'n/' | '@typescript-eslint/';
 
 type EslintOption = Record<string, boolean | string | Array<unknown>>;
-// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 type EslintModifiedRule = Record<string | `${PluginPrefixes}${string}`, [action: 'off' | 'error' | 'warn', ...Array<string | EslintOption>]>;
 type DisabledRuleArray = Array<string>;
 
@@ -37,17 +37,8 @@ export interface Types {
 }
 
 export class LintGolem {
-  private languageOptionOverrides = {
-    ecmaVersion: 'latest' as LintGolemOptions['ecmaVersion'],
-    parserOptions: {
-      jsx: false,
-      allowAutomaticSingleRunInference: true,
-      EXPERIMENTAL_useProjectService: false,
-    }
-  }
-
-  public rootDir: string = process.cwd();
-  public ignoreGlobs: string[] = [
+  // Static constants for default rules
+  private static readonly DEFAULT_IGNORE_GLOBS = [
     '**/gen',
     '**/*.map.js',
     '**/*.js.map',
@@ -66,57 +57,77 @@ export class LintGolem {
     '**/public/bundle/*',
     '**/node_modules/**',
     "**/.git/objects/**"
-  ];
-  public tsconfigPaths: string[] = [];
+  ] as const;
 
-  public disableTypeCheckOn: string[] = [
+  private static readonly DEFAULT_DISABLE_TYPE_CHECK_ON = [
     '**/*.js',
     '**/*.mjs',
     '**/*.cjs',
-  ];
+  ] as const;
 
-  public disabledTypescriptRules = [
-    '@typescript-eslint/indent', '@typescript-eslint/no-redundant-type-constituents', '@typescript-eslint/consistent-type-definitions', '@typescript-eslint/explicit-module-boundary-types',
-    '@typescript-eslint/no-explicit-any', '@typescript-eslint/ban-ts-comment', '@typescript-eslint/no-var-requires', '@typescript-eslint/no-unsafe-call', '@typescript-eslint/no-unsafe-assignment',
-    '@typescript-eslint/no-unsafe-member-access', '@typescript-eslint/unbound-method', '@typescript-eslint/restrict-template-expressions', '@typescript-eslint/no-misused-promises',
-    '@typescript-eslint/array-type', '@typescript-eslint/no-unnecessary-type-assertion', '@typescript-eslint/lines-between-class-members', '@typescript-eslint/naming-convention',
-    '@typescript-eslint/no-require-imports', '@typescript-eslint/no-var-requires',
-  ]
-  public typescriptModifiedRules: EslintModifiedRule = {
+  private static readonly DEFAULT_DISABLED_TYPESCRIPT_RULES = [
+    '@typescript-eslint/indent',
+    '@typescript-eslint/no-redundant-type-constituents',
+    '@typescript-eslint/consistent-type-definitions',
+    '@typescript-eslint/explicit-module-boundary-types',
+    '@typescript-eslint/no-explicit-any',
+    '@typescript-eslint/ban-ts-comment',
+    '@typescript-eslint/no-var-requires',
+    '@typescript-eslint/no-unsafe-call',
+    '@typescript-eslint/no-unsafe-assignment',
+    '@typescript-eslint/no-unsafe-member-access',
+    '@typescript-eslint/unbound-method',
+    '@typescript-eslint/restrict-template-expressions',
+    '@typescript-eslint/no-misused-promises',
+    '@typescript-eslint/array-type',
+    '@typescript-eslint/no-unnecessary-type-assertion',
+    '@typescript-eslint/lines-between-class-members',
+    '@typescript-eslint/naming-convention',
+    '@typescript-eslint/no-require-imports',
+  ] as const;
+
+  private static readonly DEFAULT_TYPESCRIPT_MODIFIED_RULES: EslintModifiedRule = {
     '@typescript-eslint/no-inferrable-types': ['error', { ignoreParameters: false }],
-  }
-  public get typescriptRules() {
-    return {
-      ...this.typescriptModifiedRules,
-      ...this.disabledTypescriptRules.reduce((acc, rule) => {
-        acc[rule] = 'off';
-        return acc;
-      }, {} as Record<string, string>),
-    }
-  }
+  };
 
-  public disabledNodeRules = [
+  private static readonly DEFAULT_DISABLED_NODE_RULES = [
     'n/no-missing-import',
     'n/no-unpublished-require',
     'n/no-unpublished-import',
     'n/no-extraneous-import',
     'n/no-extraneous-require',
-  ];
-  public nodeModifiedRules: EslintModifiedRule = {}
-  public get nodeRules() {
-    return {
-      ...this.nodeModifiedRules,
-      ...this.disabledNodeRules.reduce((acc, rule) => {
-        acc[rule] = 'off';
-        return acc;
-      }, {} as Record<string, string>),
-    }
-  }
+  ] as const;
 
-  public disabledEslintRules = ['arrow-body-style', 'camelcase', 'class-methods-use-this', 'consistent-return', 'func-names', 'indent', 'lines-between-class-members', 'no-useless-escape',
-    'max-classes-per-file', 'newline-per-chained-call', 'no-bitwise', 'no-console', 'no-inner-declarations', 'no-lonely-if', 'no-nested-ternary', 'no-new', 'no-param-reassign', 'no-plusplus',
-    'no-prototype-builtins', 'no-restricted-syntax', 'no-underscore-dangle', 'no-unused-expressions', 'object-shorthand', 'one-var', 'one-var-declaration-per-line', 'spaced-comment'];
-  public eslintModifiedRules: EslintModifiedRule = {
+  private static readonly DEFAULT_DISABLED_ESLINT_RULES = [
+    'arrow-body-style',
+    'camelcase',
+    'class-methods-use-this',
+    'consistent-return',
+    'func-names',
+    'indent',
+    'lines-between-class-members',
+    'no-useless-escape',
+    'max-classes-per-file',
+    'newline-per-chained-call',
+    'no-bitwise',
+    'no-console',
+    'no-inner-declarations',
+    'no-lonely-if',
+    'no-nested-ternary',
+    'no-new',
+    'no-param-reassign',
+    'no-plusplus',
+    'no-prototype-builtins',
+    'no-restricted-syntax',
+    'no-underscore-dangle',
+    'no-unused-expressions',
+    'object-shorthand',
+    'one-var',
+    'one-var-declaration-per-line',
+    'spaced-comment'
+  ] as const;
+
+  private static readonly DEFAULT_ESLINT_MODIFIED_RULES: EslintModifiedRule = {
     'arrow-parens': [
       'error',
       'as-needed',
@@ -124,15 +135,203 @@ export class LintGolem {
     ],
     'object-curly-newline': ['error', { multiline: true, consistent: true }],
     'no-shadow': ['error', { hoist: 'never' }],
+  };
+
+  private static readonly VALID_ECMA_VERSIONS = [6, 7, 8, 9, 10, 11, 12, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 'latest'] as const;
+
+  // Instance properties - immutable after construction
+  public readonly rootDir: string;
+  public readonly ignoreGlobs: readonly string[];
+  public readonly tsconfigPaths: readonly string[];
+  public readonly disableTypeCheckOn: readonly string[];
+  public readonly eslintRules: Record<string, string | [string, ...Array<string | EslintOption>]>;
+  public readonly nodeRules: Record<string, string | [string, ...Array<string | EslintOption>]>;
+  public readonly typescriptRules: Record<string, string | [string, ...Array<string | EslintOption>]>;
+  private readonly languageOptions: {
+    ecmaVersion: LintGolemOptions['ecmaVersion'];
+    parserOptions: {
+      jsx: boolean;
+      allowAutomaticSingleRunInference: boolean;
+      EXPERIMENTAL_useProjectService: boolean;
+    };
+  };
+
+  constructor(options: LintGolemOptions) {
+    // Validate options
+    this.validateOptions(options);
+
+    // Set immutable properties
+    this.rootDir = options.rootDir ?? process.cwd();
+    this.tsconfigPaths = Object.freeze([...options.tsconfigPaths]);
+    this.ignoreGlobs = Object.freeze([
+      ...LintGolem.DEFAULT_IGNORE_GLOBS,
+      ...(options.ignoreGlobs ?? [])
+    ]);
+    this.disableTypeCheckOn = Object.freeze([
+      ...LintGolem.DEFAULT_DISABLE_TYPE_CHECK_ON,
+      ...(options.disableTypeCheckOn ?? [])
+    ]);
+
+    this.languageOptions = {
+      ecmaVersion: options.ecmaVersion ?? 'latest',
+      parserOptions: {
+        jsx: options.jsx ?? false,
+        allowAutomaticSingleRunInference: true,
+        EXPERIMENTAL_useProjectService: options.useProjectService ?? false,
+      }
+    };
+
+    // Build rules with proper filtering and merging
+    this.eslintRules = this.buildRules(
+      LintGolem.DEFAULT_DISABLED_ESLINT_RULES,
+      LintGolem.DEFAULT_ESLINT_MODIFIED_RULES,
+      options.disabledRules,
+      options.rules,
+      rule => !rule.startsWith('@typescript-eslint/') && !rule.startsWith('n/')
+    );
+
+    this.nodeRules = this.buildRules(
+      LintGolem.DEFAULT_DISABLED_NODE_RULES,
+      {},
+      options.disabledRules,
+      options.rules,
+      rule => rule.startsWith('n/')
+    );
+
+    this.typescriptRules = this.buildRules(
+      LintGolem.DEFAULT_DISABLED_TYPESCRIPT_RULES,
+      LintGolem.DEFAULT_TYPESCRIPT_MODIFIED_RULES,
+      options.disabledRules,
+      options.rules,
+      rule => rule.startsWith('@typescript-eslint/')
+    );
   }
-  public get eslintRules() {
-    return {
-      ...this.eslintModifiedRules,
-      ...this.disabledEslintRules.reduce((acc, rule) => {
-        acc[rule] = 'off';
-        return acc;
-      }, {} as Record<string, string>),
+
+  /**
+   * Validates constructor options
+   */
+  private validateOptions(options: LintGolemOptions): void {
+    // Validate rootDir
+    if (!options.rootDir) {
+      throw new LintGolemError('rootDir is required', {
+        cause: 'rootDir',
+        matchSource: [],
+        incomingRule: {}
+      });
     }
+
+    const resolvedRootDir = resolve(options.rootDir);
+    if (!existsSync(resolvedRootDir)) {
+      throw new LintGolemError(`rootDir does not exist: ${resolvedRootDir}`, {
+        cause: 'rootDir',
+        matchSource: [],
+        incomingRule: {}
+      });
+    }
+
+    if (!statSync(resolvedRootDir).isDirectory()) {
+      throw new LintGolemError(`rootDir is not a directory: ${resolvedRootDir}`, {
+        cause: 'rootDir',
+        matchSource: [],
+        incomingRule: {}
+      });
+    }
+
+    // Validate tsconfigPaths
+    if (!options.tsconfigPaths || options.tsconfigPaths.length === 0) {
+      throw new LintGolemError('tsconfigPaths is required and must not be empty', {
+        cause: 'tsconfigPaths',
+        matchSource: [],
+        incomingRule: {}
+      });
+    }
+
+    for (const tsconfigPath of options.tsconfigPaths) {
+      const resolvedPath = resolve(options.rootDir, tsconfigPath);
+      if (!existsSync(resolvedPath)) {
+        throw new LintGolemError(`tsconfig file does not exist: ${resolvedPath}`, {
+          cause: 'tsconfigPaths',
+          matchSource: options.tsconfigPaths,
+          incomingRule: {}
+        });
+      }
+    }
+
+    // Validate ecmaVersion
+    if (options.ecmaVersion && !LintGolem.VALID_ECMA_VERSIONS.includes(options.ecmaVersion)) {
+      throw new LintGolemError(
+        `Invalid ecmaVersion: ${options.ecmaVersion}. Valid values are: ${LintGolem.VALID_ECMA_VERSIONS.join(', ')}`,
+        {
+          cause: 'ecmaVersion',
+          matchSource: [],
+          incomingRule: {}
+        }
+      );
+    }
+
+    // Validate conflicting rules
+    if (options.rules && options.disabledRules) {
+      for (const rule of Object.keys(options.rules)) {
+        if (options.disabledRules.includes(rule)) {
+          throw new LintGolemError(
+            `Rule ${rule} is disabled and modified`,
+            {
+              cause: rule,
+              matchSource: options.disabledRules,
+              incomingRule: { [rule]: options.rules[rule] }
+            }
+          );
+        }
+      }
+    }
+  }
+
+  /**
+   * Builds a rule set by merging default disabled rules, default modified rules,
+   * user disabled rules, and user modified rules
+   */
+  private buildRules(
+    defaultDisabledRules: readonly string[],
+    defaultModifiedRules: EslintModifiedRule,
+    userDisabledRules: DisabledRuleArray | undefined,
+    userModifiedRules: EslintModifiedRule | undefined,
+    filter: (rule: string) => boolean
+  ): Record<string, string | [string, ...Array<string | EslintOption>]> {
+    const rules: Record<string, string | [string, ...Array<string | EslintOption>]> = {};
+
+    // Add default modified rules
+    for (const [rule, config] of Object.entries(defaultModifiedRules)) {
+      if (filter(rule)) {
+        rules[rule] = config;
+      }
+    }
+
+    // Add user modified rules (filtered to this namespace)
+    if (userModifiedRules) {
+      for (const [rule, config] of Object.entries(userModifiedRules)) {
+        if (filter(rule)) {
+          rules[rule] = config;
+        }
+      }
+    }
+
+    // Add default disabled rules
+    for (const rule of defaultDisabledRules) {
+      if (filter(rule)) {
+        rules[rule] = 'off';
+      }
+    }
+
+    // Add user disabled rules (filtered to this namespace)
+    if (userDisabledRules) {
+      for (const rule of userDisabledRules) {
+        if (filter(rule)) {
+          rules[rule] = 'off';
+        }
+      }
+    }
+
+    return rules;
   }
 
   public get rules() {
@@ -143,80 +342,39 @@ export class LintGolem {
     })
   }
 
-  constructor({ rootDir, disableTypeCheckOn, ignoreGlobs, tsconfigPaths, rules, disabledRules, useProjectService, jsx, ecmaVersion }: LintGolemOptions) {
-    try {
-      this.languageOptionOverrides.parserOptions.EXPERIMENTAL_useProjectService = useProjectService ?? false;
-      this.languageOptionOverrides.parserOptions.jsx = jsx ?? false;
-      this.languageOptionOverrides.ecmaVersion = ecmaVersion ?? 'latest';
-      this.rootDir = rootDir ?? this.rootDir;
-      this.tsconfigPaths = tsconfigPaths;
-      if (ignoreGlobs) this.ignoreGlobs = [...this.ignoreGlobs, ...ignoreGlobs];
-      if (disableTypeCheckOn) this.disableTypeCheckOn = [...this.disableTypeCheckOn, ...disableTypeCheckOn];
-      if (rules && disabledRules) {
-        Object.keys(rules).every((rule) => {
-          if (disabledRules.includes(rule)) throw new LintGolemError(`Rule ${rule} is disabled and modified`, { cause: rule, matchSource: disabledRules, incomingRule: { [rule]: rules[rule] } })
-        });
-      }
-
-      if (rules) {
-        const typescriptRules = Object.keys(rules).filter(rule => rule.startsWith('@typescript-eslint/'));
-        const nodeRules = Object.keys(rules).filter(rule => rule.startsWith('n/'));
-        const eslintRules = Object.keys(rules).filter(rule => !rule.startsWith('@typescript-eslint/') && !rule.startsWith('n/'));
-
-        if (typescriptRules.length > 0) this.typescriptModifiedRules = rules;
-        if (nodeRules.length > 0) this.nodeModifiedRules = rules;
-        if (eslintRules.length > 0) this.eslintModifiedRules = rules;
-      }
-
-      if (disabledRules) {
-        const typescriptRules = disabledRules.filter(rule => rule.startsWith('@typescript-eslint/'));
-        const nodeRules = disabledRules.filter(rule => rule.startsWith('n/'));
-        const eslintRules = disabledRules.filter(rule => !rule.startsWith('@typescript-eslint/') && !rule.startsWith('n/'));
-
-        if (typescriptRules.length > 0) this.disabledTypescriptRules = disabledRules;
-        if (nodeRules.length > 0) this.disabledNodeRules = disabledRules;
-        if (eslintRules.length > 0) this.disabledEslintRules = disabledRules;
-      }
-    } catch (error) {
-      if (error instanceof LintGolemError) this.warnUserOfRuleIssue(error);
-      throw error;
-    }
-  }
-
   get ignoresObject() {
-    return ({ ignores: this.ignoreGlobs })
+    return ({ ignores: [...this.ignoreGlobs] })
   }
 
   get disabledFilesObject() {
-    return ({ files: this.disableTypeCheckOn, ...tseslint.configs.disableTypeChecked })
+    return ({ files: [...this.disableTypeCheckOn], ...tseslint.configs.disableTypeChecked })
   }
 
   get langOptsObject() {
     const langOpts = {
-      ecmaVersion: 'latest' as const,
+      ecmaVersion: this.languageOptions.ecmaVersion ?? 'latest' as const,
       parserOptions: {
         allowAutomaticSingleRunInference: true,
-        jsDocParsingMode: 'none',
-        project: this.tsconfigPaths,
+        jsDocParsingMode: 'none' as const,
+        project: [...this.tsconfigPaths],
         tsconfigRootDir: this.rootDir,
       }
     } as {
       ecmaVersion: 6 | 7 | 8 | 9 | 10 | 11 | 12 | 2015 | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 | 2022 | 'latest';
       parserOptions: {
         jsDocParsingMode: 'none';
-        project: string[] | string;
+        project: string[];
         tsconfigRootDir: string;
         EXPERIMENTAL_useProjectService?: boolean;
         jsx?: boolean;
       }
     }
 
-    if (this.languageOptionOverrides.parserOptions.EXPERIMENTAL_useProjectService) {
+    if (this.languageOptions.parserOptions.EXPERIMENTAL_useProjectService) {
       langOpts.parserOptions.EXPERIMENTAL_useProjectService = true;
     }
-    if (this.languageOptionOverrides.parserOptions.jsx) langOpts.parserOptions.jsx = true;
-    if (this.languageOptionOverrides.ecmaVersion !== 'latest') {
-      langOpts.ecmaVersion = this.languageOptionOverrides.ecmaVersion!
+    if (this.languageOptions.parserOptions.jsx) {
+      langOpts.parserOptions.jsx = true;
     }
 
     return ({ languageOptions: langOpts })
@@ -239,7 +397,6 @@ export class LintGolem {
       this.ignoresObject,
       eslint.configs.recommended as Record<string, unknown>,
       ...tseslint.configs.recommendedTypeChecked,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       PluginNConfig['flat/recommended-script'],
       prettierConfig,
       this.rulesObject,
@@ -247,52 +404,60 @@ export class LintGolem {
     ] as const);
   }
 
-  protected formatJSONUnbound(json: Record<string, unknown> | Array<string>) {
-    return JSON.stringify(json, null, "\t");
-  }
-  protected formatJSON = (json: Record<string, unknown> | Array<string>) => this.formatJSONUnbound(json);
-
-  protected styles = {
-    lintGolemStyle: `background-color: #e636dc; color: #000; padding: 3px 2px; border-radius: 6px; font-weight: bold; font-size: 15px`,
-    warningStyle: 'background-color: #ffcc00; color: #000; padding: 1px 2px; border-radius: 4px; font-weight: bold;',
-    ruleNameStyle: `background-color: #000; color: #FFF; padding: 1px 2px; border-radius: 5px; font-weight: bold;`
-  }
-
-  protected get formatErrorAsString() {
-    return `%c LintGolem Warning %c\n %c Rule Disabled AND Modified %c\n  The rule: %c%s%c is set in both your \`rules\` object %s and your \`disabledRules\` array %s`;
-  }
-
-  protected warnUserOfRuleIssue(error: LintGolemError) {
-    const { styles, formatErrorAsString, formatJSON } = this;
-    const { lintGolemStyle, warningStyle, ruleNameStyle } = styles;
-    const ruleName = error.cause;
-
-    console.info(formatErrorAsString,
-      lintGolemStyle,
-      'reset',
-      warningStyle,
-      'reset',
-      ruleNameStyle,
-      ruleName,
-      'reset',
-      formatJSON(error.incomingRule),
-      formatJSON(error.matchSource)
-    );
-  }
-
-  public static async init(config: Omit<LintGolemOptions, 'tsconfigPaths'> & { tsconfigPaths?: Array<string> }, verbose = false) {
+  public static async init(
+    config: Omit<LintGolemOptions, 'tsconfigPaths'> & { tsconfigPaths?: Array<string> },
+    verbose = false
+  ): Promise<LintGolem> {
     try {
+      // Validate rootDir first
+      if (!config.rootDir) {
+        throw new LintGolemError('rootDir is required', {
+          cause: 'rootDir',
+          matchSource: [],
+          incomingRule: {}
+        });
+      }
+
+      const resolvedRootDir = resolve(config.rootDir);
+      if (!existsSync(resolvedRootDir)) {
+        throw new LintGolemError(`rootDir does not exist: ${resolvedRootDir}`, {
+          cause: 'rootDir',
+          matchSource: [],
+          incomingRule: {}
+        });
+      }
+
       const tsconfigPaths = await glob([
         `tsconfig.json`,
         `*.tsconfig.json`,
         ...(config.tsconfigPaths ?? []),
       ], { cwd: config.rootDir, ignore: config.ignoreGlobs });
-      if (tsconfigPaths.length === 0) throw new Error('No tsconfig.json found', { cause: 'Missing projectRoot / glob failure' });
-      if (verbose) console.info('Found tsconfigPaths:', tsconfigPaths.join(', \n'));
+
+      if (tsconfigPaths.length === 0) {
+        throw new LintGolemError('No tsconfig.json found', {
+          cause: 'tsconfigPaths',
+          matchSource: [],
+          incomingRule: {}
+        });
+      }
+
+      if (verbose) {
+        console.info('Found tsconfigPaths:', tsconfigPaths.join(', \n'));
+      }
+
       return new LintGolem({ ...config, tsconfigPaths });
     } catch (error) {
-      console.info('Error:', error);
-      throw error;
+      if (error instanceof LintGolemError) {
+        throw error;
+      }
+      throw new LintGolemError(
+        `Failed to initialize LintGolem: ${error instanceof Error ? error.message : String(error)}`,
+        {
+          cause: 'init',
+          matchSource: [],
+          incomingRule: {}
+        }
+      );
     }
   }
 }
